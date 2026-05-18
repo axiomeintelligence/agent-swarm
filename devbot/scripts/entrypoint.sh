@@ -59,6 +59,7 @@ if [ -n "${CLAUDE_PLUGINS:-}" ]; then
   _add_marketplace "claude-plugins-official"             "anthropics/claude-plugins-official"
   _add_marketplace "superpowers-extended-cc-marketplace" "pcvelz/superpowers"
   _add_marketplace "mem0-plugins"                        "mem0ai/mem0"
+  _add_marketplace "ui-ux-pro-max-skill"                 "nextlevelbuilder/ui-ux-pro-max-skill"
 
   echo "[devbot] Updating plugin marketplaces ..."
   claude plugin marketplace update 2>/dev/null || true
