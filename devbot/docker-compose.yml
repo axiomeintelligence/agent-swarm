@@ -1,0 +1,35 @@
+name: ${DEVBOT_NAME:-devbot}
+
+services:
+  devbot:
+    # Pull the pre-built image from GHCR (default).
+    # To build locally instead: docker compose up --build
+    image: ghcr.io/axiomeintelligence/devbot:latest
+    build: .
+    container_name: ${DEVBOT_NAME:-devbot}
+    hostname: ${DEVBOT_NAME:-devbot}
+    restart: unless-stopped
+    shm_size: 2g
+    # Required for Chromium sandboxing inside Docker
+    cap_add:
+      - SYS_ADMIN
+      - SYS_PTRACE
+    security_opt:
+      - seccomp=unconfined
+    ports:
+      - "${DEVBOT_HOST_PORT:-3001}:3001"
+    volumes:
+      - ${DEVBOT_CLAUDE_DIR:-./data/claude}:/home/claude/.claude
+      - ${DEVBOT_WORKSPACE_DIR:-./workspace}:/workspace
+    environment:
+      - DEVBOT_HOST_PORT=${DEVBOT_HOST_PORT:-3001}
+      - TZ=${TZ:-UTC}
+      - NODE_OPTIONS=${NODE_OPTIONS:---max-old-space-size=4096}
+      - GITHUB_PAT=${GITHUB_PAT}
+      - GITHUB_REPO_URL=${GITHUB_REPO_URL}
+      - CLAUDE_PLUGINS=${CLAUDE_PLUGINS:-}
+      - CLAUDE_SKILLS_REPO=${CLAUDE_SKILLS_REPO:-}
+      - CLOUDFLARE_API_TOKEN=${CLOUDFLARE_API_TOKEN:-}
+      - CLOUDFLARE_TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN:-}
+      - WORKSPACES_ROOT=${WORKSPACES_ROOT:-/workspace}
+      - API_BEARER_TOKEN=${API_BEARER_TOKEN:-}
