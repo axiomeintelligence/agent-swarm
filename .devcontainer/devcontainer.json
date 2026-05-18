@@ -1,0 +1,10 @@
+{
+  "name": "devbot",
+  "image": "ghcr.io/axiomeintelligence/devbot:latest",
+  "containerEnv": {
+    "WORKSPACES_ROOT": "/workspace"
+  },
+  "mounts": [
+    "source=${localWorkspaceFolder},target=/workspace,type=bind"
+  ]
+}
