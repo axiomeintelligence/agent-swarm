@@ -1,0 +1,5 @@
+**/.env
+**/.env.local
+**/data/
+**/workspace/
+.DS_Store

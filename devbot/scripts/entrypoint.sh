@@ -12,7 +12,7 @@ if [ -z "${GITHUB_REPO_URL:-}" ]; then
 fi
 
 # ── 0b. Write Claude settings (skip permissions — sandboxed container) ────
-CLAUDE_SETTINGS="/home/claude/.claude/settings.json"
+export CLAUDE_SETTINGS="/home/claude/.claude/settings.json"
 mkdir -p "$(dirname "$CLAUDE_SETTINGS")"
 if [ ! -f "$CLAUDE_SETTINGS" ]; then
   echo '{}' > "$CLAUDE_SETTINGS"

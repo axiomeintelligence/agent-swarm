@@ -17,6 +17,12 @@ Pull a pre-built image from GHCR and configure everything with a single `.env` f
 
 ---
 
+## Security note
+
+The container sets `dangerouslySkipPermissions: true` in Claude Code settings on every start. This disables Claude Code's tool permission prompts. It is intentional — the container runs in an isolated Docker environment where unrestricted tool access is safe. Do not run this container with access to sensitive host filesystems or credentials beyond what your workspace requires.
+
+---
+
 ## Quickstart
 
 ```bash
@@ -69,6 +75,7 @@ Key variables:
 | `CLAUDE_SKILLS_REPO` | No | Git repo to clone as global skills |
 | `API_BEARER_TOKEN` | No | Bearer token for claudecodeui auth |
 | `CLOUDFLARE_TUNNEL_TOKEN` | No | Exposes UI via Cloudflare Tunnel |
+| `ANTHROPIC_API_KEY` | No | Anthropic API key (or authenticate via web UI) |
 
 ---
 
@@ -77,8 +84,11 @@ Key variables:
 [DevPod](https://devpod.sh) users can point at this repo to get a devbot environment:
 
 1. Install DevPod
-2. Create workspace from `https://github.com/axiomeintelligence/agent-swarm`
-3. DevPod pulls the pre-built image and mounts your local folder into `/workspace`
+2. In DevPod workspace settings, set these environment variables before starting:
+   - `GITHUB_PAT` — your GitHub personal access token
+   - `GITHUB_REPO_URL` — the repo to clone into `/workspace`
+3. Create workspace from `https://github.com/axiomeintelligence/agent-swarm`
+4. DevPod pulls the pre-built image and mounts your local folder into `/workspace`
 
 ---
 
