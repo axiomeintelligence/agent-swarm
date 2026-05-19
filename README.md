@@ -43,16 +43,16 @@ docker exec -it devbot bash
 
 ## Running multiple instances
 
-Each instance needs a unique `DEVBOT_NAME` and `DEVBOT_HOST_PORT` in its `.env`:
+Each instance needs a unique `CONTAINER_NAME` and `HOST_PORT` in its `.env`:
 
 ```bash
 # Instance 1 — .env
-DEVBOT_NAME=devbot-research
-DEVBOT_HOST_PORT=3001
+CONTAINER_NAME=devbot-research
+HOST_PORT=3001
 
 # Instance 2 — .env
-DEVBOT_NAME=devbot-client
-DEVBOT_HOST_PORT=3002
+CONTAINER_NAME=devbot-client
+HOST_PORT=3002
 ```
 
 Both can run from the same `devbot/` directory simultaneously.
@@ -69,8 +69,8 @@ Key variables:
 |---|---|---|
 | `GITHUB_PAT` | Yes | PAT to clone your workspace repo |
 | `GITHUB_REPO_URL` | Yes | Repo to clone into `/workspace` |
-| `DEVBOT_NAME` | No | Container name (default: `devbot`) |
-| `DEVBOT_HOST_PORT` | No | Host port for web UI (default: `3001`) |
+| `CONTAINER_NAME` | No | Container name (default: `devbot`) |
+| `HOST_PORT` | No | Host port for web UI (default: `3001`) |
 | `CLAUDE_PLUGINS` | No | Comma-separated plugins to install |
 | `CLAUDE_SKILLS_REPO` | No | Git repo to clone as global skills |
 | `API_BEARER_TOKEN` | No | Bearer token for claudecodeui auth |
@@ -87,7 +87,7 @@ Key variables:
 2. In DevPod workspace settings, set these environment variables before starting:
    - `GITHUB_PAT` — your GitHub personal access token
    - `GITHUB_REPO_URL` — the repo to clone into `/workspace`
-3. Create workspace from `https://github.com/axiomeintelligence/agent-swarm`
+3. Create workspace from `https://github.com/axiomeintelligence/agent-swarm` with devcontainer path `devbot/.devcontainer`
 4. DevPod pulls the pre-built image and mounts your local folder into `/workspace`
 
 ---

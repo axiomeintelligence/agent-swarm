@@ -1,4 +1,4 @@
-name: ${DEVBOT_NAME:-devbot}
+name: ${CONTAINER_NAME:-devbot}
 
 services:
   devbot:
@@ -6,8 +6,8 @@ services:
     # To build locally instead: docker compose up --build
     image: ghcr.io/axiomeintelligence/devbot:latest
     build: .
-    container_name: ${DEVBOT_NAME:-devbot}
-    hostname: ${DEVBOT_NAME:-devbot}
+    container_name: ${CONTAINER_NAME:-devbot}
+    hostname: ${CONTAINER_NAME:-devbot}
     restart: unless-stopped
     shm_size: 2g
     # Required for Chromium sandboxing inside Docker
@@ -17,12 +17,12 @@ services:
     security_opt:
       - seccomp=unconfined
     ports:
-      - "${DEVBOT_HOST_PORT:-3001}:3001"
+      - "${HOST_PORT:-3001}:3001"
     volumes:
-      - ${DEVBOT_CLAUDE_DIR:-./data/claude}:/home/claude/.claude
-      - ${DEVBOT_WORKSPACE_DIR:-./workspace}:/workspace
+      - ${CLAUDE_DIR:-./data/claude}:/home/claude/.claude
+      - ${WORKSPACE_DIR:-./workspace}:/workspace
     environment:
-      - DEVBOT_HOST_PORT=${DEVBOT_HOST_PORT:-3001}
+      - HOST_PORT=${HOST_PORT:-3001}
       - TZ=${TZ:-UTC}
       - NODE_OPTIONS=${NODE_OPTIONS:---max-old-space-size=4096}
       - GITHUB_PAT=${GITHUB_PAT}

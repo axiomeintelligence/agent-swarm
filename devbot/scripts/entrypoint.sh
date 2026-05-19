@@ -108,5 +108,5 @@ fi
 
 # ── 6. Idle ───────────────────────────────────────────────────────────────
 echo "[devbot] Ready. Attach via: docker exec -it ${HOSTNAME} bash"
-echo "[devbot] Web UI: http://localhost:${DEVBOT_HOST_PORT:-3001}"
+echo "[devbot] Web UI: http://localhost:${HOST_PORT:-3001}"
 tail -f /dev/null
