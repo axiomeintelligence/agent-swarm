@@ -1,0 +1,46 @@
+{
+  "planPath": "docs/superpowers/plans/2026-05-18-assistant-agent.md",
+  "tasks": [
+    {
+      "id": 2,
+      "subject": "Task 1: Dockerfile",
+      "status": "pending",
+      "description": "**Goal:** Build a lean Ubuntu 22.04 image with Hermes Agent, mem0ai, and cloudflared installed, running as non-root `assistant` user.\n\n**Files:**\n- Create: `assistant/Dockerfile`\n- Create: `assistant/scripts/entrypoint.sh` (stub)\n\n**Acceptance Criteria:**\n- [ ] `docker build -t assistant-test assistant/` exits 0\n- [ ] `docker run --rm assistant-test hermes --version` prints version\n- [ ] Image runs as non-root user `assistant`\n- [ ] cloudflared is on PATH\n\n```json:metadata\n{\"files\": [\"assistant/Dockerfile\", \"assistant/scripts/entrypoint.sh\"], \"verifyCommand\": \"docker build -t assistant-test assistant/ && docker run --rm assistant-test whoami\", \"acceptanceCriteria\": [\"docker build exits 0\", \"hermes --version prints version\", \"whoami returns assistant\", \"cloudflared on PATH\"]}\n```"
+    },
+    {
+      "id": 3,
+      "subject": "Task 2: Entrypoint Script",
+      "status": "pending",
+      "blockedBy": [2],
+      "description": "**Goal:** Bash entrypoint that validates AI provider key, maps AgentMail creds to Hermes email env vars, logs active platforms, and launches `hermes gateway` as foreground process.\n\n**Files:**\n- Modify: `assistant/scripts/entrypoint.sh`\n\n**Acceptance Criteria:**\n- [ ] Container exits 1 with clear error if AI_PROVIDER key is missing\n- [ ] AgentMail credentials mapped to Hermes EMAIL_* env vars\n- [ ] Active platforms logged on startup\n- [ ] Hermes gateway starts as foreground process via exec\n- [ ] CLI-only mode works when no platform tokens set\n\n```json:metadata\n{\"files\": [\"assistant/scripts/entrypoint.sh\"], \"verifyCommand\": \"docker run --rm -e AI_PROVIDER=anthropic assistant-test 2>&1 | grep ERROR\", \"acceptanceCriteria\": [\"exits 1 on missing key\", \"AgentMail mapping works\", \"platforms logged\", \"hermes gateway runs foreground\", \"CLI-only mode valid\"]}\n```"
+    },
+    {
+      "id": 4,
+      "subject": "Task 3: docker-compose.yml",
+      "status": "pending",
+      "blockedBy": [2],
+      "description": "**Goal:** Compose file that wires all env vars through to the container, mounts Hermes config and mem0 data, uses CONTAINER_NAME / HOST_PORT naming.\n\n**Files:**\n- Create: `assistant/docker-compose.yml`\n\n**Acceptance Criteria:**\n- [ ] `docker compose config` parses without errors\n- [ ] Container name defaults to `assistant`, port to `3002`\n- [ ] ~/.hermes and ~/.mem0 persisted via volume mounts\n\n```json:metadata\n{\"files\": [\"assistant/docker-compose.yml\"], \"verifyCommand\": \"cd assistant && docker compose config | grep container_name\", \"acceptanceCriteria\": [\"docker compose config valid\", \"default name is assistant\", \"default port is 3002\", \"volumes mount .hermes and .mem0\"]}\n```"
+    },
+    {
+      "id": 5,
+      "subject": "Task 4: .env.example",
+      "status": "pending",
+      "blockedBy": [4],
+      "description": "**Goal:** Fully documented environment template with setup links, AgentMail and SMTP sections, standardized CONTAINER_NAME / HOST_PORT vars.\n\n**Files:**\n- Create: `assistant/.env.example`\n\n**Acceptance Criteria:**\n- [ ] Every env var in docker-compose.yml present in .env.example\n- [ ] Every platform section has a setup link\n- [ ] AgentMail and SMTP/IMAP sections clearly separated\n- [ ] CONTAINER_NAME and HOST_PORT used (not ASSISTANT_* variants)\n\n```json:metadata\n{\"files\": [\"assistant/.env.example\"], \"verifyCommand\": \"grep 'CONTAINER_NAME' assistant/.env.example && grep 'HOST_PORT' assistant/.env.example\", \"acceptanceCriteria\": [\"all compose vars present\", \"platform setup links included\", \"AgentMail and SMTP sections separate\", \"standardized var names used\"]}\n```"
+    },
+    {
+      "id": 6,
+      "subject": "Task 5: CI/CD Workflows",
+      "status": "pending",
+      "description": "**Goal:** New publish-assistant.yml workflow for GHCR; existing publish.yml updated with devbot/** path filter.\n\n**Files:**\n- Create: `.github/workflows/publish-assistant.yml`\n- Modify: `.github/workflows/publish.yml`\n\n**Acceptance Criteria:**\n- [ ] publish-assistant.yml triggers only on assistant/** changes\n- [ ] publish.yml triggers only on devbot/** changes\n- [ ] Assistant image tagged as :latest and :<sha>\n- [ ] Both files pass YAML validation\n\n```json:metadata\n{\"files\": [\".github/workflows/publish-assistant.yml\", \".github/workflows/publish.yml\"], \"verifyCommand\": \"python3 -c \\\"import yaml; [yaml.safe_load(open(f)) for f in ['.github/workflows/publish-assistant.yml', '.github/workflows/publish.yml']]; print('valid')\\\"\", \"acceptanceCriteria\": [\"publish-assistant.yml has assistant/** path filter\", \"publish.yml has devbot/** path filter\", \"both files valid YAML\", \"assistant image has :latest and :sha tags\"]}\n```"
+    },
+    {
+      "id": 7,
+      "subject": "Task 6: README Update",
+      "status": "pending",
+      "blockedBy": [3, 4, 5, 6],
+      "description": "**Goal:** Add assistant section to main README with quickstart, env var table, and Signal future enhancement note.\n\n**Files:**\n- Modify: `README.md`\n\n**Acceptance Criteria:**\n- [ ] README has assistant section separate from devbot section\n- [ ] Quickstart covers clone → cp .env.example → fill keys → docker compose up\n- [ ] Env var table lists key variables\n- [ ] Signal noted as future enhancement\n- [ ] Pull image references ghcr.io/axiomeintelligence/assistant:latest\n\n```json:metadata\n{\"files\": [\"README.md\"], \"verifyCommand\": \"grep -c 'assistant' README.md\", \"acceptanceCriteria\": [\"assistant section in README\", \"quickstart instructions present\", \"env var table present\", \"Signal noted as future\", \"GHCR image reference present\"]}\n```"
+    }
+  ],
+  "lastUpdated": "2026-05-18T00:00:00Z"
+}
