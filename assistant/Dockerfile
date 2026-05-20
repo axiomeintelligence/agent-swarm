@@ -12,6 +12,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libsodium-dev \
     dbus-x11 \
     xz-utils \
+    python3 \
+    python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
 # Cloudflare Tunnel CLI via official Cloudflare apt repo (same method as devbot)
@@ -27,8 +29,7 @@ RUN curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg \
 RUN useradd -m -s /bin/bash assistant
 
 # Entrypoint installed as root before user switch
-COPY scripts/entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
+COPY --chmod=755 scripts/entrypoint.sh /usr/local/bin/entrypoint.sh
 
 # Switch to non-root user for Hermes installation
 USER assistant
@@ -37,14 +38,15 @@ ENV PATH="/home/assistant/.local/bin:${PATH}"
 
 # Install Hermes Agent — non-interactive, skip setup wizard and browser engine
 # Installs code to ~/.hermes/hermes-agent, binary to ~/.local/bin/hermes
-RUN curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh \
+# Pinned to commit e2fd462 (2026-05-18); update SHA when upgrading Hermes
+RUN curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/e2fd462ebe7dfd13663270b6f3dff6360d2ad297/scripts/install.sh \
     | bash -s -- --skip-setup --skip-browser
 
 # Install mem0ai into the Hermes Python virtual environment
 # Hermes uses uv (not pip) — invoke uv pip with the venv path
 # Note: Hermes installer creates the venv at 'venv' (not '.venv')
 RUN /home/assistant/.local/bin/uv pip install --quiet \
-    --python /home/assistant/.hermes/hermes-agent/venv/bin/python3.11 \
+    --python /home/assistant/.hermes/hermes-agent/venv/bin/python3 \
     mem0ai
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
