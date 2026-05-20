@@ -38,8 +38,11 @@ ENV PATH="/home/assistant/.local/bin:${PATH}"
 
 # Install Hermes Agent — non-interactive, skip setup wizard and browser engine
 # Installs code to ~/.hermes/hermes-agent, binary to ~/.local/bin/hermes
-# Pinned to commit e2fd462 (2026-05-18); update SHA when upgrading Hermes
-RUN curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/e2fd462ebe7dfd13663270b6f3dff6360d2ad297/scripts/install.sh \
+# HERMES_REF defaults to main so a simple `docker compose up --build` always pulls latest.
+# Pin to a commit SHA for reproducible builds:
+#   docker compose build --build-arg HERMES_REF=e2fd462ebe7dfd13663270b6f3dff6360d2ad297
+ARG HERMES_REF=main
+RUN curl -fsSL "https://raw.githubusercontent.com/NousResearch/hermes-agent/${HERMES_REF}/scripts/install.sh" \
     | bash -s -- --skip-setup --skip-browser
 
 # Install mem0ai into the Hermes Python virtual environment
