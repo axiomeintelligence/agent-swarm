@@ -1,0 +1,52 @@
+name: ${CONTAINER_NAME:-assistant}
+
+services:
+  assistant:
+    # Pull the pre-built image from GHCR (default).
+    # To build locally instead: docker compose up --build
+    image: ghcr.io/axiomeintelligence/assistant:latest
+    build:
+      context: .
+      args:
+        # Defaults to main — always pulls latest Hermes on rebuild.
+        # Pin to a commit SHA for reproducible builds:
+        #   docker compose build --build-arg HERMES_REF=<sha>
+        HERMES_REF: ${HERMES_REF:-main}
+    container_name: ${CONTAINER_NAME:-assistant}
+    hostname: ${CONTAINER_NAME:-assistant}
+    restart: unless-stopped
+    ports:
+      - "${HOST_PORT:-3002}:8443"
+    volumes:
+      - ${ASSISTANT_HERMES_DIR:-./data/hermes}:/home/assistant/.hermes
+      - ${ASSISTANT_MEM0_DIR:-./data/mem0}:/home/assistant/.mem0
+    environment:
+      - TZ=${TZ:-UTC}
+      # ── AI model ────────────────────────────────────────────────────────────
+      - AI_PROVIDER=${AI_PROVIDER:-anthropic}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      # ── Memory ──────────────────────────────────────────────────────────────
+      - MEM0_API_KEY=${MEM0_API_KEY:-}
+      # ── Telegram ────────────────────────────────────────────────────────────
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - TELEGRAM_ALLOWED_USERS=${TELEGRAM_ALLOWED_USERS:-}
+      # ── Slack ───────────────────────────────────────────────────────────────
+      - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN:-}
+      - SLACK_APP_TOKEN=${SLACK_APP_TOKEN:-}
+      - SLACK_ALLOWED_USERS=${SLACK_ALLOWED_USERS:-}
+      # ── AgentMail ───────────────────────────────────────────────────────────
+      - AGENTMAIL_API_KEY=${AGENTMAIL_API_KEY:-}
+      - AGENTMAIL_INBOX_EMAIL=${AGENTMAIL_INBOX_EMAIL:-}
+      # ── Standard email (SMTP/IMAP fallback) ─────────────────────────────────
+      - EMAIL_ADDRESS=${EMAIL_ADDRESS:-}
+      - EMAIL_PASSWORD=${EMAIL_PASSWORD:-}
+      - EMAIL_IMAP_HOST=${EMAIL_IMAP_HOST:-}
+      - EMAIL_IMAP_PORT=${EMAIL_IMAP_PORT:-993}
+      - EMAIL_SMTP_HOST=${EMAIL_SMTP_HOST:-}
+      - EMAIL_SMTP_PORT=${EMAIL_SMTP_PORT:-587}
+      - EMAIL_ALLOWED_USERS=${EMAIL_ALLOWED_USERS:-}
+      - EMAIL_POLL_INTERVAL=${EMAIL_POLL_INTERVAL:-15}
+      # ── Tunnel ──────────────────────────────────────────────────────────────
+      - CLOUDFLARE_TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN:-}
