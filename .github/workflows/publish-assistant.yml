@@ -1,10 +1,10 @@
-name: Publish devbot image
+name: Publish assistant image
 
 on:
   push:
     branches: [main]
     paths:
-      - devbot/**
+      - assistant/**
 
 jobs:
   publish:
@@ -23,8 +23,8 @@ jobs:
 
       - uses: docker/build-push-action@v5
         with:
-          context: devbot
+          context: assistant
           push: true
           tags: |
-            ghcr.io/axiomeintelligence/devbot:latest
-            ghcr.io/axiomeintelligence/devbot:${{ github.sha }}
+            ghcr.io/axiomeintelligence/assistant:latest
+            ghcr.io/axiomeintelligence/assistant:${{ github.sha }}
