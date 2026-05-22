@@ -106,3 +106,85 @@ docker compose up --build -d
 Pre-built image: `ghcr.io/axiomeintelligence/devbot:latest`
 
 Built and pushed automatically on every push to `main`.
+
+---
+
+## `assistant/` — Hermes AI Gateway
+
+A self-hostable AI assistant powered by [Hermes Agent](https://github.com/NousResearch/hermes-agent) (Nous Research), reachable via Telegram, Slack, and email. Persistent memory via [mem0](https://mem0.ai).
+
+Pre-built image: `ghcr.io/axiomeintelligence/assistant:latest`
+
+---
+
+### What's inside
+
+**`assistant/`** — A Hermes Agent container with:
+- [Hermes Agent](https://github.com/NousResearch/hermes-agent) — AI assistant runtime (Telegram, Slack, email, CLI)
+- [mem0](https://mem0.ai) — persistent memory (local file or cloud)
+- Cloudflare CLI (`cloudflared`) for optional tunnel support
+- Supports any LLM provider: Anthropic Claude (default), OpenAI, OpenRouter
+
+---
+
+### Quickstart
+
+```bash
+cd assistant
+cp .env.example .env
+# Edit .env — set ANTHROPIC_API_KEY and at least one platform token
+docker compose up -d
+```
+
+Attach a CLI shell:
+```bash
+docker exec -it assistant hermes
+```
+
+Follow logs:
+```bash
+docker logs -f assistant
+```
+
+Upgrade to the latest Hermes:
+```bash
+docker compose up --build -d
+```
+
+---
+
+### Environment variables
+
+See [`assistant/.env.example`](assistant/.env.example) for the full list with descriptions and setup links.
+
+Key variables:
+
+| Variable | Required | Description |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | Yes (default) | API key for Anthropic Claude |
+| `AI_PROVIDER` | No | Model provider: `anthropic` \| `openai` \| `openrouter` (default: `anthropic`) |
+| `MEM0_API_KEY` | No | mem0 cloud key — leave blank for local storage |
+| `TELEGRAM_BOT_TOKEN` | No | Enable Telegram — from @BotFather |
+| `SLACK_BOT_TOKEN` | No | Enable Slack — from Slack app settings |
+| `AGENTMAIL_API_KEY` | No | Enable email via AgentMail (recommended) |
+| `AGENTMAIL_INBOX_EMAIL` | No | Inbox address from AgentMail console |
+| `CONTAINER_NAME` | No | Container name (default: `assistant`) |
+| `HOST_PORT` | No | Host port (default: `3002`) |
+| `CLOUDFLARE_TUNNEL_TOKEN` | No | Expose assistant via Cloudflare Tunnel |
+
+---
+
+### Running alongside devbot
+
+Both containers can run simultaneously from the same repo:
+
+```bash
+cd devbot && docker compose up -d
+cd ../assistant && docker compose up -d
+```
+
+---
+
+### Signal support
+
+Signal is not currently supported natively by Hermes Agent. Signal-CLI bridge support is a future enhancement.
