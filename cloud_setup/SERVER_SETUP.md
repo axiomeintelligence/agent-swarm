@@ -193,6 +193,7 @@ write_files:
 
   - path: /opt/komodo/compose.env
     content: |
+      # Periphery is locked to v2.2.0; This may need to be pinned in the future.
       COMPOSE_KOMODO_IMAGE_TAG=2
 
       KOMODO_DATABASE_USERNAME=komodo
@@ -282,6 +283,7 @@ Periphery is a small systemd-managed agent that lets Komodo manage this server. 
 ```bash
 curl -sSL https://raw.githubusercontent.com/moghtech/komodo/main/scripts/setup-periphery.py \
   | python3 - \
+  --version="v2.2.0" \
   --core-address="http://localhost:9120" \
   --connect-as="agent-0" \
   --onboarding-key="O-..."
