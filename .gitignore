@@ -1,5 +1,6 @@
 **/.env
 **/.env.local
+cloud_setup/cloud-config-generated.yaml
 **/data/
 **/workspace/
 .DS_Store

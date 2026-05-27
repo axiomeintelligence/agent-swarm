@@ -2,7 +2,7 @@
 
 ## Security
 ### Overview
-Access to the server instance is locked down to the Tailscale VPN. A Cloud Firewall restricts all inbound traffic to only what Tailscale requires, preventing any direct public access to the server or its services. UFW running on the server instance additionally blocks inbound traffic, providing a layer of defense in depth in case of misconfiguration.
+Access to the server instance is locked down to the Tailscale VPN. A Cloud Firewall restricts all inbound traffic to only what Tailscale requires, preventing any direct public access to the server or its services. iptables running on the server instance additionally blocks inbound traffic, providing a layer of defense in depth in case of misconfiguration.
 
 Note that all outbound ports are open, to facilitate cloudflared, tailscale, and updates. See (Further Security Enhancements)
 
@@ -21,7 +21,7 @@ All server administration is done over the Tailscale network. Install the Tailsc
 - **macOS:** https://tailscale.com/download/macos
 - **Android/iOS:** Available in respective app stores (optional; but not recommended)
 
-Services running on the server (e.g. Komodo) are accessed directly over the Tailscale network via MagicDNS hostname. No public ports are exposed for services. UFW restricts the necessary ports on the server instance to the tailscale interface. If additional administrative applications are required, ports should be restricted via UFW to the `tailscale0` interface. No additional ports should be opened on the cloud firewall.
+Services running on the server (e.g. Komodo) are accessed directly over the Tailscale network via MagicDNS hostname. No public ports are exposed for services. iptables restricts the necessary ports on the server instance to the `tailscale0` interface. If additional administrative applications are required, add rules scoped to `tailscale0` in `/etc/iptables/rules.v4` and run `netfilter-persistent save`. No additional ports should be opened on the cloud firewall.
 
 ---
 
@@ -96,13 +96,12 @@ Replace the placeholder values before pasting into the server instance cloud-con
 | Placeholder | Value |
 |---|---|
 | `<tailscale-auth-key>` | Auth key from Tailscale admin console (Step 3) |
-| `<tailscale-hostname>` | MagicDNS hostname assigned by Tailscale (visible in Tailscale admin after first boot) |
 | `<mongo-password>` | Random strong password — `openssl rand -hex 32` |
-| `<secret-key>` | Random string — run `openssl rand -hex 32` |
-| `<server-name>` | Display name for this server in Komodo (e.g. `agent-0`) — fill in after first boot |
-| `<onboarding-key>` | Generated in Komodo UI after first boot — see Step 8 |
+| `<jwt-secret>` | Random string — `openssl rand -hex 32` |
+| `<webhook-secret>` | Random string — `openssl rand -hex 32` |
+| `<admin-password>` | Initial Komodo admin account password - `openssl rand -hex 32` |
 
-> `<tailscale-hostname>` and the Periphery placeholders (`<server-name>`, `<onboarding-key>`) cannot be known before provisioning. Fill them in via Tailscale SSH after the server is online.
+> All placeholders can be filled before provisioning. After first boot, update `KOMODO_HOST` in `compose.env` to use the Tailscale MagicDNS hostname (Step 7). Periphery is configured separately in Step 8.
 
 ```yaml
 #cloud-config
@@ -113,7 +112,7 @@ users:
     shell: /bin/bash
 
 packages:
-  - ufw
+  - iptables-persistent
   - curl
   - unattended-upgrades
   - apt-transport-https
@@ -131,6 +130,24 @@ write_files:
   #     net.ipv4.ip_forward=1
   #     net.ipv6.conf.all.forwarding=1
 
+  - path: /etc/iptables/rules.v4
+    content: |
+      *filter
+      :INPUT DROP [0:0]
+      :FORWARD DROP [0:0]
+      :OUTPUT ACCEPT [0:0]
+      # Allow established/related connections
+      -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+      # Allow loopback
+      -A INPUT -i lo -j ACCEPT
+      # Tailscale direct peer connections (falls back to DERP relay if blocked)
+      -A INPUT -p udp --dport 41641 -j ACCEPT
+      # SSH — Tailscale network only
+      -A INPUT -i tailscale0 -p tcp --dport 22 -j ACCEPT
+      # Komodo web UI — Tailscale network only
+      -A INPUT -i tailscale0 -p tcp --dport 9120 -j ACCEPT
+      COMMIT
+
   - path: /etc/apt/apt.conf.d/20auto-upgrades
     content: |
       APT::Periodic::Update-Package-Lists "1";
@@ -140,50 +157,61 @@ write_files:
   - path: /opt/komodo/docker-compose.yml
     content: |
       services:
-        komodo-mongo:
-          image: mongo:latest
+        mongo:
+          image: mongo
+          labels:
+            komodo.skip:
+          command: --quiet --wiredTigerCacheSizeGB 0.25
           restart: unless-stopped
+          env_file: ./compose.env
           volumes:
-            - komodo-mongo-data:/data/db
+            - mongo-data:/data/db
+            - mongo-config:/data/configdb
           environment:
-            MONGO_INITDB_ROOT_USERNAME: komodo
-            MONGO_INITDB_ROOT_PASSWORD: <mongo-password>
+            MONGO_INITDB_ROOT_USERNAME: ${KOMODO_DATABASE_USERNAME}
+            MONGO_INITDB_ROOT_PASSWORD: ${KOMODO_DATABASE_PASSWORD}
 
-        komodo-core:
-          image: ghcr.io/mbecker20/komodo:latest
-          restart: unless-stopped
-          depends_on:
-            - komodo-mongo
-          ports:
-            - "9120:9120"
-          environment:
-            KOMODO_HOST: http://<tailscale-hostname>:9120
-            KOMODO_SECRET_KEY: <secret-key>
-            KOMODO_DATABASE_URI: mongodb://komodo:<mongo-password>@komodo-mongo:27017/komodo?authSource=admin
-            KOMODO_DATABASE_DB_NAME: komodo
-            KOMODO_LOCAL_AUTH: "true"
-
-        komodo-periphery:
-          image: ghcr.io/moghtech/komodo-periphery:2
+        core:
+          image: ghcr.io/moghtech/komodo-core:${COMPOSE_KOMODO_IMAGE_TAG:-2}
           init: true
           restart: unless-stopped
           depends_on:
-            - komodo-core
+            - mongo
+          ports:
+            - 9120:9120
+          env_file: ./compose.env
           environment:
-            PERIPHERY_CORE_ADDRESS: http://komodo-core:9120
-            PERIPHERY_CONNECT_AS: <server-name>
-            PERIPHERY_ONBOARDING_KEY: <onboarding-key>
-            PERIPHERY_ROOT_DIRECTORY: /etc/komodo
-            PERIPHERY_INCLUDE_DISK_MOUNTS: /etc/hostname
+            KOMODO_DATABASE_ADDRESS: mongo:27017
           volumes:
-            - periphery-keys:/config/keys
-            - /var/run/docker.sock:/var/run/docker.sock
-            - /proc:/proc
-            - /etc/komodo:/etc/komodo
+            - keys:/config/keys
+            - /etc/komodo/backups:/backups
 
       volumes:
-        komodo-mongo-data:
-        periphery-keys:
+        mongo-data:
+        mongo-config:
+        keys:
+
+  - path: /opt/komodo/compose.env
+    content: |
+      COMPOSE_KOMODO_IMAGE_TAG=2
+
+      KOMODO_DATABASE_USERNAME=komodo
+      KOMODO_DATABASE_PASSWORD=<mongo-password>
+
+      TZ=Etc/UTC
+
+      KOMODO_HOST=http://localhost:9120
+      KOMODO_TITLE=Komodo
+
+      KOMODO_LOCAL_AUTH=true
+      KOMODO_INIT_ADMIN_USERNAME=admin
+      KOMODO_INIT_ADMIN_PASSWORD=<admin-password>
+
+      KOMODO_JWT_SECRET=<jwt-secret>
+      KOMODO_WEBHOOK_SECRET=<webhook-secret>
+
+      KOMODO_DISABLE_USER_REGISTRATION=true
+      KOMODO_ENABLE_NEW_USERS=false
 
 runcmd:
   # Disable openssh — emergency access via provider VNC console only
@@ -204,16 +232,11 @@ runcmd:
   - systemctl enable --now docker
 
   # Start Komodo
-  - docker compose -f /opt/komodo/docker-compose.yml up -d
+  - docker compose -f /opt/komodo/docker-compose.yml --env-file /opt/komodo/compose.env up -d
 
-  # UFW rules
-  # Tailscale direct peer connections (falls back to DERP relay if blocked)
-  - ufw allow 41641/udp
-  # Tailscale SSH — Tailscale network only
-  - ufw allow in on tailscale0 to any port 22
-  # Komodo web UI — Tailscale network only
-  - ufw allow in on tailscale0 to any port 9120
-  - ufw enable
+  # Apply firewall rules and persist across reboots
+  - iptables-restore < /etc/iptables/rules.v4
+  - netfilter-persistent save
 
   # Authenticate Tailscale with SSH enabled
   # To also advertise as an exit node, uncomment the two lines below and comment out the one above:
@@ -231,65 +254,55 @@ runcmd:
 tailscale status
 ```
 
-The server should appear with a MagicDNS hostname (e.g. `hellscrew`).
+The server should appear with a MagicDNS hostname (e.g. `hz-agents-0`).
 
 **SSH into the server:**
 
 ```bash
-ssh cloud_user@hellscrew
-```
-
-**Fill in the hostname placeholder** — replace `hellscrew` with your actual Tailscale hostname:
-
-```bash
-HOSTNAME="hellscrew"
-sed -i "s/<tailscale-hostname>/${HOSTNAME}/g" /opt/komodo/docker-compose.yml
-docker compose -f /opt/komodo/docker-compose.yml up -d komodo-core
+ssh cloud_user@hz-agents-0
 ```
 
 **Access Komodo:**
 
-Open `http://hellscrew:9120` in a browser on any device connected to your Tailscale network. Register the first user — they get admin rights automatically.
+Open `http://hz-agents-0:9120` in a browser on any device connected to your Tailscale network. Register the first user — they get admin rights automatically.
 
 ### 8. Connect the Server to Komodo (Periphery)
 
-Periphery is an agent that lets Komodo manage servers. It connects outbound to Core over the Docker network — no extra firewall rules needed.
+Periphery is a small systemd-managed agent that lets Komodo manage this server. It connects outbound to Core — no inbound firewall rules needed.
 
 **Step 1 — Create an Onboarding Key in Komodo:**
 
 1. Log into Komodo
-2. Go to **Settings → Server Onboarding Keys**
-3. Create a new key and copy it
+2. Go to **Settings → Onboarding Keys**
+3. Create a new key — it will start with `O-...`
+4. Copy it immediately (shown only once)
 
-**Step 2 — Fill in the Periphery placeholders on the server:**
+**Step 2 — Install Periphery via systemd on the server:**
 
 ```bash
-SERVER_NAME="agent-0"
-ONBOARDING_KEY="tskey-onboard-XXXXX"
-
-sed -i "s/<server-name>/${SERVER_NAME}/g" /opt/komodo/docker-compose.yml
-sed -i "s/<onboarding-key>/${ONBOARDING_KEY}/g" /opt/komodo/docker-compose.yml
-
-docker compose -f /opt/komodo/docker-compose.yml up -d komodo-periphery
-docker compose -f /opt/komodo/docker-compose.yml logs -f komodo-periphery
+curl -sSL https://raw.githubusercontent.com/moghtech/komodo/main/scripts/setup-periphery.py \
+  | python3 - \
+  --core-address="http://localhost:9120" \
+  --connect-as="agent-0" \
+  --onboarding-key="O-..."
+sudo systemctl enable periphery
 ```
 
 The server will appear under **Servers** in the Komodo UI within seconds.
 
-> Once registered, `PERIPHERY_ONBOARDING_KEY` can be removed from the compose file — it is only needed for the initial connection.
+> The onboarding key is only needed for the initial connection. After Periphery registers, all subsequent auth uses automatically managed key pairs — no manual key rotation required.
 
 ## Alternative Cloud - Hetzner
 In place of Oracle Cloud, create an instance with Hetzner. Ensure the Firewall is setup correctly 
-### 5. Hetzner Server (Obsolete; Use Oracle Cloud)
+### 5. Hetzner Server
 
 Create the server with these settings:
 
 | Setting | Value |
 |---|---|
-| Type | Regular Performance (CPX11) |
+| Type | Regular Performance (CPX21) |
 | Location | US-West |
 | Image | Ubuntu 24.04 |
-| Volume | 10 GB (US-West), name: `agent-0-vol` |
 | Networking | IPv4 + IPv6 |
 | SSH Key | Optional — emergency fallback only |
 | Firewall | Tailscale Firewall |
