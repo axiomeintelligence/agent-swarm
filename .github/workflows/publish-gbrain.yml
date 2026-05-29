@@ -1,10 +1,10 @@
-name: Publish assistant image
+name: Publish gbrain image
 
 on:
   push:
     branches: [main]
     paths:
-      - assistant/hermes/**
+      - assistant/gbrain/**
 
 jobs:
   publish:
@@ -23,8 +23,8 @@ jobs:
 
       - uses: docker/build-push-action@v5
         with:
-          context: assistant/hermes
+          context: assistant/gbrain
           push: true
           tags: |
-            ghcr.io/axiomeintelligence/assistant:latest
-            ghcr.io/axiomeintelligence/assistant:sha-${{ github.sha }}
+            ghcr.io/axiomeintelligence/gbrain:latest
+            ghcr.io/axiomeintelligence/gbrain:sha-${{ github.sha }}
