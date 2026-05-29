@@ -1,0 +1,54 @@
+{
+  "planPath": "docs/superpowers/plans/2026-05-28-infrastructure-ansible.md",
+  "tasks": [
+    {
+      "id": 15,
+      "subject": "Task 1: Create minimal cloud-config.yml",
+      "status": "pending",
+      "description": "**Goal:** Strip the existing cloud-config to user creation, Tailscale, and iptables only — no Docker or Komodo.\n\n**Files:**\n- Create: `infrastructure/cloud-config/cloud-config.yml`\n\n**Acceptance Criteria:**\n- [ ] Contains user creation, packages, iptables write_file, auto-upgrades write_file, Tailscale install, firewall apply, tailscale up, reboot\n- [ ] Does NOT contain Docker install, Komodo write_files, or Periphery steps\n- [ ] Includes `python3` in packages\n\n**Verify:** `grep -E 'docker|komodo|mongo|periphery' infrastructure/cloud-config/cloud-config.yml` → no output\n\n```json:metadata\n{\"files\": [\"infrastructure/cloud-config/cloud-config.yml\"], \"verifyCommand\": \"grep -E 'docker|komodo|mongo|periphery' infrastructure/cloud-config/cloud-config.yml\", \"acceptanceCriteria\": [\"Contains user, Tailscale, iptables only\", \"No Docker or Komodo references\", \"python3 in packages\"]}\n```"
+    },
+    {
+      "id": 16,
+      "subject": "Task 2: Create Ansible inventory and vars scaffold",
+      "status": "pending",
+      "blockedBy": [15],
+      "description": "**Goal:** Produce the gitignored inventory and vars files operators copy and fill before running the playbook.\n\n**Files:**\n- Create: `infrastructure/ansible/inventory/hosts.example`\n- Create: `infrastructure/ansible/inventory/.gitignore`\n- Create: `infrastructure/ansible/vars/komodo.example.yml`\n- Create: `infrastructure/ansible/vars/.gitignore`\n\n**Verify:** `git status infrastructure/ansible/` — `.example` files tracked, no `hosts` or `komodo.yml`\n\n```json:metadata\n{\"files\": [\"infrastructure/ansible/inventory/hosts.example\", \"infrastructure/ansible/inventory/.gitignore\", \"infrastructure/ansible/vars/komodo.example.yml\", \"infrastructure/ansible/vars/.gitignore\"], \"verifyCommand\": \"git status infrastructure/ansible/\", \"acceptanceCriteria\": [\"hosts.example committed\", \"komodo.example.yml committed\", \"hosts gitignored\", \"komodo.yml gitignored\"]}\n```"
+    },
+    {
+      "id": 17,
+      "subject": "Task 3: Create tasks/docker.yml",
+      "status": "pending",
+      "blockedBy": [16],
+      "description": "**Goal:** Ansible task file that installs Docker CE and compose plugin idempotently via the official Docker apt repo.\n\n**Files:**\n- Create: `infrastructure/ansible/tasks/docker.yml`\n\n**Verify:** `python3 -c \"import yaml; yaml.safe_load(open('infrastructure/ansible/tasks/docker.yml')); print('OK')\"` → `OK`\n\n```json:metadata\n{\"files\": [\"infrastructure/ansible/tasks/docker.yml\"], \"verifyCommand\": \"python3 -c \\\"import yaml; yaml.safe_load(open('infrastructure/ansible/tasks/docker.yml')); print('OK')\\\"\", \"acceptanceCriteria\": [\"Docker GPG key step\", \"Docker apt repo step\", \"Installs all 4 Docker packages\", \"Enables Docker systemd service\", \"Valid YAML\"]}\n```"
+    },
+    {
+      "id": 18,
+      "subject": "Task 4: Create tasks/komodo.yml and komodo-compose.env.j2",
+      "status": "pending",
+      "blockedBy": [17],
+      "description": "**Goal:** Ansible task file and Jinja2 template that create the Komodo directory, write compose files, and start the stack.\n\n**Files:**\n- Create: `infrastructure/ansible/tasks/komodo.yml`\n- Create: `infrastructure/ansible/templates/komodo-compose.env.j2`\n\n**Verify:** `python3 -c \"import yaml; yaml.safe_load(open('infrastructure/ansible/tasks/komodo.yml')); print('OK')\"` → `OK`\n\n```json:metadata\n{\"files\": [\"infrastructure/ansible/tasks/komodo.yml\", \"infrastructure/ansible/templates/komodo-compose.env.j2\"], \"verifyCommand\": \"python3 -c \\\"import yaml; yaml.safe_load(open('infrastructure/ansible/tasks/komodo.yml')); print('OK')\\\"\", \"acceptanceCriteria\": [\"Creates /opt/komodo directory\", \"Writes docker-compose.yml\", \"Renders compose.env with 0600 permissions\", \"KOMODO_HOST uses inventory_hostname\", \"Starts stack\"]}\n```"
+    },
+    {
+      "id": 19,
+      "subject": "Task 5: Create tasks/periphery.yml",
+      "status": "pending",
+      "blockedBy": [18],
+      "description": "**Goal:** Ansible task file that runs the Periphery setup script and enables the systemd service using the onboarding key passed from site.yml.\n\n**Files:**\n- Create: `infrastructure/ansible/tasks/periphery.yml`\n\n**Verify:** `python3 -c \"import yaml; yaml.safe_load(open('infrastructure/ansible/tasks/periphery.yml')); print('OK')\"` → `OK`\n\n```json:metadata\n{\"files\": [\"infrastructure/ansible/tasks/periphery.yml\"], \"verifyCommand\": \"python3 -c \\\"import yaml; yaml.safe_load(open('infrastructure/ansible/tasks/periphery.yml')); print('OK')\\\"\", \"acceptanceCriteria\": [\"Setup script pinned to v2.2.0\", \"Uses inventory_hostname for core-address and connect-as\", \"Uses onboarding_key variable\", \"Idempotent via creates\", \"Enables periphery service\"]}\n```"
+    },
+    {
+      "id": 20,
+      "subject": "Task 6: Create site.yml",
+      "status": "pending",
+      "blockedBy": [19],
+      "description": "**Goal:** The single Ansible entry point — three plays: Docker+Komodo, manual pause, Periphery.\n\n**Files:**\n- Create: `infrastructure/ansible/site.yml`\n\n**Verify:**\n```bash\ncd infrastructure/ansible && cp vars/komodo.example.yml vars/komodo.yml && ansible-playbook --syntax-check -i inventory/hosts.example site.yml; rm vars/komodo.yml\n```\nExpected: ends with `playbook: site.yml`, no errors.\n\n```json:metadata\n{\"files\": [\"infrastructure/ansible/site.yml\"], \"verifyCommand\": \"cd infrastructure/ansible && cp vars/komodo.example.yml vars/komodo.yml && ansible-playbook --syntax-check -i inventory/hosts.example site.yml; rm vars/komodo.yml\", \"acceptanceCriteria\": [\"Three plays in correct order\", \"vars_files loads komodo.yml\", \"Pause registered as komodo_onboarding_key\", \"Periphery play passes onboarding key from hostvars\", \"Syntax check passes\"]}\n```"
+    },
+    {
+      "id": 21,
+      "subject": "Task 7: Move and rewrite SERVER_SETUP.md",
+      "status": "pending",
+      "blockedBy": [20],
+      "description": "**Goal:** Move cloud_setup/SERVER_SETUP.md to infrastructure/SERVER_SETUP.md and rewrite for the Ansible workflow.\n\n**Files:**\n- Create: `infrastructure/SERVER_SETUP.md`\n- Delete: `cloud_setup/SERVER_SETUP.md`\n\n**Verify:** `grep 'ansible-playbook' infrastructure/SERVER_SETUP.md` → matches found\n\n```json:metadata\n{\"files\": [\"infrastructure/SERVER_SETUP.md\"], \"verifyCommand\": \"grep 'ansible-playbook' infrastructure/SERVER_SETUP.md\", \"acceptanceCriteria\": [\"Security section intact\", \"Only tailscale-auth-key placeholder\", \"Ansible run section present\", \"Old file deleted\"]}\n```"
+    }
+  ],
+  "lastUpdated": "2026-05-28T20:55:00-07:00"
+}
