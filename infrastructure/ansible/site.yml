@@ -1,12 +1,13 @@
 ---
-# Play 1: Install Docker and deploy Komodo on the server
-- name: Install Docker and deploy Komodo
+# Play 1: Install Docker, SOPS, and deploy Komodo on the server
+- name: Install Docker, SOPS, and deploy Komodo
   hosts: servers
   become: true
   vars_files:
     - vars/komodo.yml
   tasks:
     - ansible.builtin.import_tasks: tasks/docker.yml
+    - ansible.builtin.import_tasks: tasks/sops.yml
     - ansible.builtin.import_tasks: tasks/komodo.yml
 
 # Play 2: Pause on localhost to collect the Komodo onboarding key

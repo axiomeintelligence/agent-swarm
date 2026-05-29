@@ -8,3 +8,18 @@ komodo_database_password: "<mongo-password>"
 komodo_jwt_secret: "<jwt-secret>"
 komodo_webhook_secret: "<webhook-secret>"
 komodo_admin_password: "<admin-password>"
+
+# Age private key for SOPS secret decryption on this server.
+# Generate locally: age-keygen  (install: brew install age)
+#
+# The public key printed by age-keygen goes into the instance repo's .sops.yaml
+# under creation_rules for this server's stacks. Keep only the PRIVATE key here.
+#
+# Example output from age-keygen:
+#   # created: 2026-05-29T00:00:00Z
+#   # public key: age1xxxx...
+#   AGE-SECRET-KEY-1yyyy...
+age_private_key: |
+  # created: <timestamp>
+  # public key: age1<your-public-key-here>
+  AGE-SECRET-KEY-1<your-private-key-here>

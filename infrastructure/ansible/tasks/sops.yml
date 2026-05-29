@@ -1,0 +1,57 @@
+---
+- name: Validate required variables
+  ansible.builtin.assert:
+    that:
+      - age_private_key is defined
+      - age_private_key | length > 0
+    fail_msg: |
+      age_private_key is required but not set.
+      1. Run: age-keygen  (install: brew install age)
+      2. Copy the entire AGE-SECRET-KEY-1... line into vars/komodo.yml under age_private_key
+      3. The public key printed by age-keygen goes into the instance repo's .sops.yaml
+
+- name: Get latest sops release metadata
+  ansible.builtin.uri:
+    url: https://api.github.com/repos/getsops/sops/releases/latest
+    return_content: true
+  register: sops_release
+
+- name: Set sops version fact
+  ansible.builtin.set_fact:
+    sops_version: "{{ sops_release.json.tag_name }}"
+
+- name: Install sops binary
+  ansible.builtin.get_url:
+    url: "https://github.com/getsops/sops/releases/download/{{ sops_version }}/sops-{{ sops_version }}.linux.amd64"
+    dest: /usr/local/bin/sops
+    mode: "0755"
+
+- name: Verify sops binary works
+  ansible.builtin.command:
+    cmd: sops --version
+  changed_when: false
+  register: sops_version_check
+  failed_when: sops_version_check.rc != 0
+
+- name: Create age key directory
+  ansible.builtin.file:
+    path: /root/.config/sops/age
+    state: directory
+    mode: "0700"
+
+- name: Write age private key
+  ansible.builtin.copy:
+    content: "{{ age_private_key }}"
+    dest: /root/.config/sops/age/keys.txt
+    mode: "0600"
+    owner: root
+    group: root
+  no_log: true
+
+- name: Verify age private key format
+  ansible.builtin.command:
+    cmd: grep -q "^AGE-SECRET-KEY-1" /root/.config/sops/age/keys.txt
+  changed_when: false
+  no_log: true
+  register: age_key_check
+  failed_when: age_key_check.rc != 0
