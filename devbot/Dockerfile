@@ -1,4 +1,4 @@
-FROM ubuntu:22.04
+FROM ubuntu:26.04
 
 ENV DEBIAN_FRONTEND=noninteractive \
     TZ=UTC \
@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
-# Chromium via xtradeb PPA (Ubuntu 22.04 apt chromium-browser is a snap stub)
+# Chromium via xtradeb PPA (Ubuntu apt chromium-browser is a snap stub)
 # Symlink chromium-browser -> chromium to satisfy acceptance criteria
 RUN add-apt-repository -y ppa:xtradeb/apps \
     && apt-get update \
@@ -29,9 +29,10 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && rm -rf /var/lib/apt/lists/*
 
 # Cloudflare Tunnel CLI (cloudflared) via official Cloudflare apt repo
+# Uses the noble (24.04) distribution — latest supported by Cloudflare's repo
 RUN curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg \
       | tee /usr/share/keyrings/cloudflare-main.gpg >/dev/null \
-    && echo 'deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflared jammy main' \
+    && echo 'deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflared noble main' \
       | tee /etc/apt/sources.list.d/cloudflared.list \
     && apt-get update \
     && apt-get install -y --no-install-recommends cloudflared \
