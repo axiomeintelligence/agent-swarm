@@ -1,0 +1,72 @@
+#cloud-config
+users:
+  - name: cloud_user
+    groups: users, admin
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/bash
+
+packages:
+  - iptables-persistent
+  - curl
+  - ca-certificates
+  - gnupg
+  - python3
+  - unattended-upgrades
+package_update: true
+package_upgrade: true
+
+write_files:
+  # Uncomment to enable this server as a Tailscale exit node.
+  # Also requires approval in the Tailscale admin console after boot:
+  # https://login.tailscale.com/admin/machines
+  # - path: /etc/sysctl.d/99-tailscale.conf
+  #   content: |
+  #     net.ipv4.ip_forward=1
+  #     net.ipv6.conf.all.forwarding=1
+
+  - path: /etc/iptables/rules.v4
+    content: |
+      *filter
+      :INPUT DROP [0:0]
+      :FORWARD DROP [0:0]
+      :OUTPUT ACCEPT [0:0]
+      # Allow established/related connections
+      -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+      # Allow loopback
+      -A INPUT -i lo -j ACCEPT
+      # Tailscale direct peer connections (falls back to DERP relay if blocked)
+      -A INPUT -p udp --dport 41641 -j ACCEPT
+      # SSH — Tailscale network only
+      -A INPUT -i tailscale0 -p tcp --dport 22 -j ACCEPT
+      # Web UI — Tailscale network only (accessed during Ansible playbook)
+      -A INPUT -i tailscale0 -p tcp --dport 9120 -j ACCEPT
+      COMMIT
+
+  - path: /etc/apt/apt.conf.d/20auto-upgrades
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+      APT::Periodic::AutocleanInterval "7";
+
+runcmd:
+  # Disable openssh — emergency access via provider VNC console only
+  - systemctl disable --now ssh || true
+  - systemctl mask ssh
+
+  # Install Tailscale
+  - curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/$(lsb_release -cs).noarmor.gpg | tee /usr/share/keyrings/tailscale-archive-keyring.gpg > /dev/null
+  - curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/$(lsb_release -cs).tailscale-keyring.list | tee /etc/apt/sources.list.d/tailscale.list
+  - apt-get update -y
+  - apt-get install -y tailscale
+  - systemctl enable --now tailscaled
+
+  # Apply firewall rules and persist across reboots
+  - iptables-restore < /etc/iptables/rules.v4
+  - netfilter-persistent save
+
+  # Authenticate Tailscale with SSH enabled
+  # To also advertise as an exit node, uncomment the two lines below and comment out the one above:
+  # - sysctl -p /etc/sysctl.d/99-tailscale.conf
+  # - tailscale up --ssh --advertise-exit-node --authkey=<tailscale-auth-key>
+  - tailscale up --ssh --authkey=<tailscale-auth-key>
+  - reboot

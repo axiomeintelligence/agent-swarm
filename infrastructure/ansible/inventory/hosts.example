@@ -1,0 +1,12 @@
+# Copy this file to inventory/hosts (git-ignored) and fill in the real hostname.
+# The hostname must be the server's Tailscale MagicDNS name or IP address.
+#
+#   cp inventory/hosts.example inventory/hosts
+#   # Edit inventory/hosts — replace <server-tailscale-hostname>
+#
+# Example after filling in:
+#   [servers]
+#   hz-agents-0 ansible_user=cloud_user
+
+[servers]
+<server-tailscale-hostname> ansible_user=cloud_user

@@ -1,0 +1,17 @@
+- name: Run Komodo Periphery setup script
+  ansible.builtin.shell: |
+    curl -sSL https://raw.githubusercontent.com/moghtech/komodo/main/scripts/setup-periphery.py \
+      | python3 - \
+      --version="v2.2.0" \
+      --core-address="http://{{ inventory_hostname }}:9120" \
+      --connect-as="{{ inventory_hostname }}" \
+      --onboarding-key="{{ onboarding_key }}"
+  args:
+    creates: /usr/local/bin/periphery
+
+- name: Enable and start Periphery systemd service
+  ansible.builtin.systemd:
+    name: periphery
+    enabled: true
+    state: started
+    daemon_reload: true

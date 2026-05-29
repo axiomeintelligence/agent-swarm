@@ -1,0 +1,40 @@
+---
+# Play 1: Install Docker and deploy Komodo on the server
+- name: Install Docker and deploy Komodo
+  hosts: servers
+  become: true
+  vars_files:
+    - vars/komodo.yml
+  tasks:
+    - ansible.builtin.import_tasks: tasks/docker.yml
+    - ansible.builtin.import_tasks: tasks/komodo.yml
+
+# Play 2: Pause on localhost to collect the Komodo onboarding key
+- name: Collect Komodo onboarding key
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Prompt for Komodo onboarding key
+      ansible.builtin.pause:
+        prompt: |
+
+          Komodo is running at http://{{ groups['servers'][0] }}:9120
+
+          Steps:
+            1. Open the URL above in your browser
+            2. Register as the first user (they receive admin rights automatically)
+            3. Go to Settings → Onboarding Keys
+            4. Create a new key — it will start with O-...
+            5. Copy it immediately (shown only once)
+
+          Paste the onboarding key here and press Enter
+      register: komodo_onboarding_key
+
+# Play 3: Install Periphery on the server using the onboarding key from Play 2
+- name: Install Periphery
+  hosts: servers
+  become: true
+  tasks:
+    - ansible.builtin.import_tasks: tasks/periphery.yml
+      vars:
+        onboarding_key: "{{ hostvars['localhost']['komodo_onboarding_key']['user_input'] }}"

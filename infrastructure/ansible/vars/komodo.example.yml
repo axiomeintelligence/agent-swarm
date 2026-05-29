@@ -1,0 +1,10 @@
+# Copy to vars/komodo.yml (git-ignored) and fill in real values before running.
+# Generate each secret with: openssl rand -hex 32
+#
+#   cp vars/komodo.example.yml vars/komodo.yml
+#   # Edit vars/komodo.yml — replace all placeholder values
+
+komodo_database_password: "<mongo-password>"
+komodo_jwt_secret: "<jwt-secret>"
+komodo_webhook_secret: "<webhook-secret>"
+komodo_admin_password: "<admin-password>"
