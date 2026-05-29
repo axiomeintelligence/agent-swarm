@@ -57,6 +57,8 @@ The server authenticates to Tailscale automatically on first boot using an auth 
 tailscale logout && tailscale up --ssh --authkey=tskey-auth-XXXXXX
 ```
 
+> **Tag the server:** When generating the auth key, expand **Tags** and add `tag:agent-server`. This allows the Tailscale ACL policy (`infrastructure/tailscale/acl-policy.example.hujson`) to correctly scope access to this server. The tag is applied at join time — no manual step needed after provisioning.
+
 ---
 
 ### 2. Cloud Firewall
@@ -157,3 +159,47 @@ The playbook will:
 The server will appear under **Servers** in the Komodo UI within seconds of Periphery registering.
 
 > `inventory/hosts` and `vars/komodo.yml` are gitignored — never committed.
+
+---
+
+### 7. SOPS Secret Management
+
+Stack-level secrets are committed to the instance repo as SOPS-encrypted `.enc.env` files and decrypted on the server by Komodo's Repo `on_pull` hook.
+
+**Prerequisites — install locally:**
+
+```bash
+brew install age sops   # macOS
+```
+
+**Setup for a new server:**
+
+```bash
+# 1. Generate an age keypair (run on your local machine — not on the server)
+age-keygen
+# Output:
+#   # created: 2026-05-29T00:00:00Z
+#   # public key: age1xxxx...
+#   AGE-SECRET-KEY-1yyyy...
+
+# 2. Add the PRIVATE key to ansible/vars/komodo.yml under age_private_key
+#    (git-ignored — never commit this file)
+
+# 3. Add the PUBLIC key to the instance repo's .sops.yaml:
+#    - path_regex: ^agent-stacks/<stack-name>/.*\.enc\.env$
+#      age: age1xxxx...
+
+# 4. Re-run the Ansible playbook (or just the sops task):
+ansible-playbook -i inventory/hosts site.yml --tags sops
+# This installs sops and writes the age private key to /root/.config/sops/age/keys.txt
+```
+
+The age private key is written to `/root/.config/sops/age/keys.txt` by the `sops.yml` Ansible task. Komodo's `on_pull` script calls `sops --decrypt`, which reads the key from that path automatically.
+
+**Editing encrypted secrets:**
+
+```bash
+# From the instance repo (e.g. axiome_intelligence):
+sops agent-stacks/<stack-name>/.enc.env
+# Opens in $EDITOR — save to re-encrypt automatically
+```

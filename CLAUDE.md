@@ -198,3 +198,36 @@ Three GitHub Actions workflows publish images to GHCR on push to `main`:
 | `publish.yml` | `devbot/**` | `ghcr.io/axiomeintelligence/devbot` |
 
 Images are tagged `latest` and `sha-<commit-sha>`. Consuming repos override via `ASSISTANT_IMAGE`, `GBRAIN_IMAGE`, `GDRIVE_MCP_IMAGE`, or `DEVBOT_IMAGE` env vars.
+
+---
+
+## GitOps Deploy Flow
+
+Agent stacks are deployed from a downstream instance repo (e.g. `axiome_intelligence`) via Komodo Resource Sync.
+
+**Flow on push to instance repo:**
+1. Instance repo contains `agent-stacks/komodo.toml` (Komodo manifest) and `agent-stacks/<name>/.enc.env` (SOPS-encrypted secrets).
+2. GitHub Actions workflow triggers on changes to `agent-stacks/**`.
+3. Workflow joins the Tailnet using an ephemeral `tag:ci` auth key (preauthorized — bypasses device approval).
+4. Workflow calls `POST /api/execute/RunProcedure` on the Komodo API at `http://<server-tailscale-hostname>:9120`.
+5. Komodo pulls the instance repo → `on_pull` script decrypts secrets → Komodo redeploys the Stack from this repo.
+
+**Required GitHub secrets in the instance repo:**
+
+| Secret | Description |
+|--------|-------------|
+| `TAILSCALE_AUTH_KEY` | Ephemeral + preauthorized + `tag:ci`. Generate at Tailscale admin → Settings → Keys |
+| `KOMODO_API_KEY` | From Komodo UI → Settings → API Keys |
+| `KOMODO_URL` | `http://<server-tailscale-hostname>:9120` |
+
+---
+
+## Tailscale ACL Policy
+
+`infrastructure/tailscale/acl-policy.example.hujson` is a ready-made policy template. Copy the relevant sections into the Tailscale admin console at `https://login.tailscale.com/admin/acls`.
+
+**Tags defined:**
+- `tag:agent-server` — apply to each provisioned server via the auth key at creation time (see SERVER_SETUP.md Step 1.3)
+- `tag:ci` — apply to the GitHub Actions ephemeral auth key in the instance repo
+
+GitHub Actions runners tagged `tag:ci` can reach `tag:agent-server:9120` (Komodo API) only. No SSH or other port access.
