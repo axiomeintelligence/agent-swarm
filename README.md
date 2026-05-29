@@ -111,19 +111,24 @@ Built and pushed automatically on every push to `main`.
 
 ## `assistant/` — Hermes AI Gateway
 
-A self-hostable AI assistant powered by [Hermes Agent](https://github.com/NousResearch/hermes-agent) (Nous Research), reachable via Telegram, Slack, and email. Persistent memory via [mem0](https://mem0.ai).
+A self-hostable AI assistant powered by the official [Hermes Agent](https://github.com/NousResearch/hermes-agent) image (Nous Research). Reachable via Telegram, Slack, and Gmail. Knowledge graph memory via [G-Brain](https://github.com/garrytan/gbrain). Optional Google Drive access.
 
-Pre-built image: `ghcr.io/axiomeintelligence/assistant:latest`
+Pre-built images:
+- `ghcr.io/axiomeintelligence/assistant:latest` (Hermes wrapper)
+- `ghcr.io/axiomeintelligence/gbrain:latest` (G-Brain MCP)
+- `ghcr.io/axiomeintelligence/gdrive-mcp:latest` (Google Drive MCP)
+
+See [`assistant/README.md`](assistant/README.md) for full documentation.
 
 ---
 
 ### What's inside
 
-**`assistant/`** — A Hermes Agent container with:
-- [Hermes Agent](https://github.com/NousResearch/hermes-agent) — AI assistant runtime (Telegram, Slack, email, CLI)
-- [mem0](https://mem0.ai) — persistent memory (local file or cloud)
-- Cloudflare CLI (`cloudflared`) for optional tunnel support
-- Supports any LLM provider: Anthropic Claude (default), OpenAI, OpenRouter
+Three services on a shared Docker network:
+
+- **hermes** — [Hermes Agent](https://github.com/NousResearch/hermes-agent) (official `nousresearch/hermes-agent` image), thin wrapper that injects MCP server config on first boot. Port 8642.
+- **gbrain** — [G-Brain](https://github.com/garrytan/gbrain) HTTP MCP server with PGLite graph database. Port 3131.
+- **gdrive-mcp** — `@modelcontextprotocol/server-gdrive` bridged via `supergateway` to SSE. Port 3000. Requires `GOOGLE_SERVICE_ACCOUNT_JSON`.
 
 ---
 
@@ -143,19 +148,14 @@ docker exec -it assistant hermes
 
 Follow logs:
 ```bash
-docker logs -f assistant
-```
-
-Upgrade to the latest Hermes:
-```bash
-docker compose up --build -d
+docker compose logs -f
 ```
 
 ---
 
 ### Environment variables
 
-See [`assistant/.env.example`](assistant/.env.example) for the full list with descriptions and setup links.
+See [`assistant/.env.example`](assistant/.env.example) for the full list with descriptions.
 
 Key variables:
 
@@ -163,28 +163,21 @@ Key variables:
 |---|---|---|
 | `ANTHROPIC_API_KEY` | Yes (default) | API key for Anthropic Claude |
 | `AI_PROVIDER` | No | Model provider: `anthropic` \| `openai` \| `openrouter` (default: `anthropic`) |
-| `MEM0_API_KEY` | No | mem0 cloud key — leave blank for local storage |
+| `GBRAIN_REF` | No | G-Brain git ref to build from (default: `main` → `master`) |
+| `GOOGLE_SERVICE_ACCOUNT_JSON` | No | Service account JSON for Google Drive access |
 | `TELEGRAM_BOT_TOKEN` | No | Enable Telegram — from @BotFather |
 | `SLACK_BOT_TOKEN` | No | Enable Slack — from Slack app settings |
-| `AGENTMAIL_API_KEY` | No | Enable email via AgentMail (recommended) |
-| `AGENTMAIL_INBOX_EMAIL` | No | Inbox address from AgentMail console |
-| `CONTAINER_NAME` | No | Container name (default: `assistant`) |
-| `HOST_PORT` | No | Host port (default: `3002`) |
-| `CLOUDFLARE_TUNNEL_TOKEN` | No | Expose assistant via Cloudflare Tunnel |
+| `EMAIL_ADDRESS` | No | Gmail address for IMAP/SMTP |
+| `CONTAINER_NAME` | No | Container name prefix (default: `assistant`) |
+| `HOST_PORT` | No | Host port for Hermes (default: `8642`) |
 
 ---
 
 ### Running alongside devbot
 
-Both containers can run simultaneously from the same repo:
+Both stacks can run simultaneously:
 
 ```bash
 cd devbot && docker compose up -d
 cd ../assistant && docker compose up -d
 ```
-
----
-
-### Signal support
-
-Signal is not currently supported natively by Hermes Agent. Signal-CLI bridge support is a future enhancement.
