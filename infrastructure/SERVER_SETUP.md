@@ -285,14 +285,44 @@ The decrypted `.env` is never committed — only the SOPS-encrypted `.enc.env`.
 
 #### 8.4 Register the Resource Sync in Komodo
 
-1. Open Komodo UI → **Resource Sync** → **Add Sync**
-2. Set **Repo** to your instance repo and **Branch** to `main`
-3. Set **Resource path** to `agent-stacks/komodo.toml`
-4. Save — Komodo will import the Repo, Stack, and Procedure resources defined in the manifest
+The `komodo.toml` file is just a manifest — Komodo doesn't discover it automatically. You must register a Resource Sync once in the UI. After that, every push to the instance repo triggers a re-sync that creates or updates the resources defined in the TOML.
+
+**How the paths connect:**
+
+```
+Instance repo (e.g. your-org/your-instance)
+└── agent-stacks/
+    ├── komodo.toml          ← Resource Sync points here
+    │     [[Repo]]   → clones your-org/your-instance onto the server
+    │     [[Stack]]  → clones your-org/axiome-agent-swarm onto the server
+    │     [[Procedure]] → links the two: pull repo (decrypt) → deploy stack
+    └── <stack-name>/
+        └── .enc.env         ← decrypted by on_pull into /root/stacks/<stack>/.env
+```
+
+The Resource Sync reads `komodo.toml` and materialises the Repo, Stack, and Procedure as live resources in Komodo. The Repo resource clones the instance repo (so Komodo can run the `on_pull` decrypt command). The Stack resource points at the agent-swarm compose repo. The Procedure ties them together.
+
+**Steps:**
+
+1. Open Komodo UI → **Resource Sync** in the left sidebar
+2. Click **New Resource Sync**
+3. Fill in:
+   - **Name** — any label (e.g. `<client-name>-instance`)
+   - **Repo** — your instance repo (e.g. `your-org/your-instance`)
+   - **Branch** — `main`
+   - **Resource path** — `agent-stacks/komodo.toml`
+4. Click **Save**, then click **Sync** — Komodo reads the TOML and creates all resources
+
+After the sync, verify in the sidebar:
+- **Repos** → your repo entry appears
+- **Stacks** → your stack entry appears
+- **Procedures** → `deploy-<client-name>-swarm` appears
+
+> The Resource Sync requires Komodo to be able to clone the instance repo. If the repo is private, add a GitHub token under **Settings → Providers** in the Komodo UI before syncing.
 
 #### 8.5 Verify the first deploy
 
-1. In Komodo UI → **Procedures** → open `deploy-<stack-name>` → **Run**
+1. In Komodo UI → **Procedures** → open `deploy-<client-name>-swarm` → **Run**
 2. Check the run log — the `on_pull` decrypt step runs first, then the stack deploys
 3. Confirm the stack appears under **Stacks** with status Running
 
@@ -343,4 +373,4 @@ Push any change to `agent-stacks/` and check **Actions** in your repo. The workf
 2. POSTs to Komodo's `RunProcedure` endpoint
 3. Komodo pulls the repo (decrypting secrets via `on_pull`) and redeploys the stack
 
-> The workflow file is at `.github/workflows/komodo-deploy.yml` in the instance repo. Adapt the procedure name (`deploy-axiome`) to match what you defined in `komodo.toml`.
+> The workflow file is at `.github/workflows/komodo-deploy.yml` in the instance repo. Adapt the procedure name in the `curl` body to match the `name` field of your `[[Procedure]]` in `komodo.toml` (e.g. `deploy-<client-name>-swarm`).
