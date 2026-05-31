@@ -15,11 +15,14 @@ services:
         condition: service_started
     ports:
       - "${HOST_PORT:-8642}:8642"
+      - "${DASHBOARD_PORT:-9119}:9119"    # dashboard UI (requires HERMES_DASHBOARD=1)
     volumes:
       - ./data/${CONTAINER_NAME:-assistant}/hermes:/opt/data
     networks:
       - assistant-net
     environment:
+      # ── Dashboard ───────────────────────────────────────────────────────────
+      - HERMES_DASHBOARD=${HERMES_DASHBOARD:-1}
       # ── AI provider ──────────────────────────────────────────────────────────
       - AI_PROVIDER=${AI_PROVIDER:-anthropic}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
