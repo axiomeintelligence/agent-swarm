@@ -316,7 +316,7 @@ After every push to `agent-stacks/**` in the instance repo, a GitHub Actions wor
 
 1. Open Komodo UI → click your **username/avatar** in the sidebar (bottom-left)
 2. Go to your **Profile** page → **API Keys** → **Create**
-3. Copy the full key (format: `<key-id>/<secret>`) — it is shown only once
+3. Komodo displays two fields: **Key ID** and **Secret** — combine them as `<key-id>/<secret>` (forward slash separator) when setting the GitHub secret. Neither field alone is sufficient.
 
 #### 9.3 Add GitHub secrets
 
