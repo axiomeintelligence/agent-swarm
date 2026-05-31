@@ -8,7 +8,6 @@ services:
     container_name: ${CONTAINER_NAME:-assistant}
     hostname: ${CONTAINER_NAME:-assistant}
     restart: unless-stopped
-    command: gateway run --insecure          # skip OAuth gate — safe on Tailscale-only networks
     depends_on:
       gbrain:
         condition: service_healthy
@@ -24,6 +23,7 @@ services:
     environment:
       # ── Dashboard ───────────────────────────────────────────────────────────
       - HERMES_DASHBOARD=${HERMES_DASHBOARD:-1}
+      - HERMES_DASHBOARD_INSECURE=${HERMES_DASHBOARD_INSECURE:-1}             # skip OAuth gate — safe on Tailscale-only networks
       # ── AI provider ──────────────────────────────────────────────────────────
       - AI_PROVIDER=${AI_PROVIDER:-anthropic}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
