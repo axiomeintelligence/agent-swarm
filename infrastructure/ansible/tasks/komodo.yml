@@ -2,18 +2,24 @@
   ansible.builtin.file:
     path: /opt/komodo
     state: directory
-    mode: '0755'
+    owner: cloud_user
+    group: docker
+    mode: '0750'
 
 - name: Create Komodo backups directory
   ansible.builtin.file:
     path: /etc/komodo/backups
     state: directory
-    mode: '0755'
+    owner: cloud_user
+    group: docker
+    mode: '0750'
 
 - name: Write Komodo docker-compose.yml
   ansible.builtin.copy:
     dest: /opt/komodo/docker-compose.yml
-    mode: '0644'
+    owner: cloud_user
+    group: docker
+    mode: '0640'
     content: |
       services:
         mongo:
@@ -31,7 +37,7 @@
             MONGO_INITDB_ROOT_PASSWORD: ${KOMODO_DATABASE_PASSWORD}
 
         core:
-          image: ghcr.io/moghtech/komodo-core:${COMPOSE_KOMODO_IMAGE_TAG:-2}
+          image: ghcr.io/moghtech/komodo-core:${COMPOSE_KOMODO_IMAGE_TAG:-2.2}
           init: true
           restart: unless-stopped
           depends_on:
@@ -54,10 +60,13 @@
   ansible.builtin.template:
     src: komodo-compose.env.j2
     dest: /opt/komodo/compose.env
+    owner: cloud_user
+    group: cloud_user
     mode: '0600'
 
 - name: Start Komodo stack via docker compose
   ansible.builtin.command:
-    cmd: docker compose -f /opt/komodo/docker-compose.yml --env-file /opt/komodo/compose.env up -d
+    cmd: docker compose up -d
     chdir: /opt/komodo
+  become_user: cloud_user
   changed_when: true

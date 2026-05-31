@@ -1,15 +1,37 @@
-- name: Run Komodo Periphery setup script
-  ansible.builtin.shell: |
-    curl -sSL https://raw.githubusercontent.com/moghtech/komodo/main/scripts/setup-periphery.py \
-      | python3 - \
-      --version="v2.2.0" \
-      --core-address="http://{{ inventory_hostname }}:9120" \
-      --connect-as="{{ inventory_hostname }}" \
-      --onboarding-key="{{ onboarding_key }}"
-  args:
-    creates: /usr/local/bin/periphery
+- name: Check if Periphery is already installed
+  ansible.builtin.stat:
+    path: /usr/local/bin/periphery
+  register: periphery_binary
 
-- name: Enable and start Periphery systemd service
+- name: Prompt to reinstall Periphery if already present
+  ansible.builtin.pause:
+    prompt: |
+
+      Periphery is already installed at /usr/local/bin/periphery.
+      Re-run onboarding? This will re-register this server with Komodo Core.
+
+      Enter 'y' to reinstall, anything else to skip
+  register: periphery_reinstall_confirm
+  when: periphery_binary.stat.exists
+
+- name: Download Komodo Periphery setup script
+  ansible.builtin.get_url:
+    url: https://raw.githubusercontent.com/moghtech/komodo/main/scripts/setup-periphery.py
+    dest: /opt/komodo/setup-periphery.py
+    mode: '0755'
+  when: not periphery_binary.stat.exists or periphery_reinstall_confirm.user_input | default('') | lower == 'y'
+
+- name: Run Komodo Periphery setup script
+  ansible.builtin.shell:
+    cmd: >-
+      python3 /opt/komodo/setup-periphery.py
+      --version=v2.2.0
+      --core-address=http://{{ inventory_hostname }}:9120
+      --connect-as={{ inventory_hostname }}
+      --onboarding-key={{ onboarding_key }}
+  when: not periphery_binary.stat.exists or periphery_reinstall_confirm.user_input | default('') | lower == 'y'
+
+- name: Reload systemd and ensure Periphery service is enabled
   ansible.builtin.systemd:
     name: periphery
     enabled: true
