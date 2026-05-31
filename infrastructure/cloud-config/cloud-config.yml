@@ -38,8 +38,6 @@ write_files:
       -A INPUT -p udp --dport 41641 -j ACCEPT
       # SSH — Tailscale network only
       -A INPUT -i tailscale0 -p tcp --dport 22 -j ACCEPT
-      # Web UI — Tailscale network only (accessed during Ansible playbook)
-      -A INPUT -i tailscale0 -p tcp --dport 9120 -j ACCEPT
       COMMIT
 
   - path: /etc/apt/apt.conf.d/20auto-upgrades
