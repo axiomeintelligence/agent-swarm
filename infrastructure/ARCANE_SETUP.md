@@ -38,6 +38,7 @@ ansible-playbook -i inventory/hosts arcane.yml
 | Command | What it runs |
 |---|---|
 | `--tags arcane` | Redeploy Arcane only |
+| `--tags teardown` | Remove Arcane entirely (see [Teardown](#6-teardown)) |
 
 ---
 
@@ -113,3 +114,15 @@ services:
 ```
 
 Generate the `AGENT_TOKEN` in Arcane UI → **Environments** → **Add Environment** → copy the token from the generated snippet.
+
+---
+
+## 6. Teardown
+
+To remove Arcane from the server (stops containers, deletes `/opt/arcane`, removes the port 3552 firewall rule):
+
+```bash
+ansible-playbook -i inventory/hosts arcane.yml --tags teardown
+```
+
+After teardown you can deploy a different orchestrator — e.g. `ansible-playbook -i inventory/hosts komodo.yml`.

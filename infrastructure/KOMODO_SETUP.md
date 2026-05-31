@@ -52,16 +52,15 @@ The server will appear under **Servers** in the Komodo UI within seconds of Peri
 
 | Command | What it runs |
 |---|---|
-| `--tags docker` | Reinstall Docker |
-| `--tags sops` | Update SOPS / age key |
 | `--tags komodo` | Redeploy Komodo Core + MongoDB |
 | `--tags periphery` | Rerun Periphery onboarding |
 | `--tags resource-sync` | Rerun Resource Sync bootstrap |
+| `--tags teardown` | Remove Komodo entirely (see [Teardown](#6-teardown)) |
 
 **Re-running Periphery with a known onboarding key** (skips the pause):
 
 ```bash
-ansible-playbook -i inventory/hosts site.yml --tags periphery --extra-vars "onboarding_key=O-your-key"
+ansible-playbook -i inventory/hosts komodo.yml --tags periphery --extra-vars "onboarding_key=O-your-key"
 ```
 
 ---
@@ -111,10 +110,10 @@ git push
 
 ### 3.4 Register the Resource Sync
 
-Fill in the Resource Sync vars in `vars/server.yml`, then run:
+Fill in the Resource Sync vars in `vars/komodo.yml`, then run:
 
 ```bash
-ansible-playbook -i inventory/hosts site.yml --tags resource-sync
+ansible-playbook -i inventory/hosts komodo.yml --tags resource-sync
 ```
 
 This authenticates to Komodo, creates the sync if it doesn't exist, and runs the initial sync.
@@ -217,3 +216,15 @@ Push any change to `agent-stacks/` and check **Actions** in your repo. The workf
 1. Joins the Tailnet as an ephemeral `tag:ci` node
 2. POSTs to Komodo's `RunProcedure` endpoint
 3. Komodo pulls the repo (decrypting secrets via `on_pull`) and redeploys the stack
+
+---
+
+## 6. Teardown
+
+To remove Komodo from the server (stops containers, removes Periphery binary and service, deletes `/opt/komodo` and `/etc/komodo`, removes the port 9120 firewall rule):
+
+```bash
+ansible-playbook -i inventory/hosts komodo.yml --tags teardown
+```
+
+After teardown you can deploy a different orchestrator — e.g. `ansible-playbook -i inventory/hosts arcane.yml`.
