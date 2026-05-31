@@ -1,0 +1,58 @@
+- name: Allow Arcane Web UI on Tailscale interface
+  ansible.builtin.iptables:
+    chain: INPUT
+    in_interface: tailscale0
+    protocol: tcp
+    destination_port: "3552"
+    jump: ACCEPT
+    comment: Arcane Web UI — Tailscale only
+
+- name: Persist iptables rules
+  ansible.builtin.command:
+    cmd: netfilter-persistent save
+  changed_when: true
+
+- name: Create Arcane directory
+  ansible.builtin.file:
+    path: /opt/arcane
+    state: directory
+    owner: cloud_user
+    group: docker
+    mode: '0750'
+
+- name: Write Arcane docker-compose.yml
+  ansible.builtin.copy:
+    dest: /opt/arcane/docker-compose.yml
+    owner: cloud_user
+    group: docker
+    mode: '0640'
+    content: |
+      services:
+        arcane:
+          image: ghcr.io/getarcaneapp/arcane:latest
+          container_name: arcane
+          restart: unless-stopped
+          ports:
+            - 3552:3552
+          env_file: ./compose.env
+          volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+            - arcane-data:/app/data
+
+      volumes:
+        arcane-data:
+
+- name: Write Arcane compose.env from template
+  ansible.builtin.template:
+    src: arcane-compose.env.j2
+    dest: /opt/arcane/compose.env
+    owner: cloud_user
+    group: cloud_user
+    mode: '0600'
+
+- name: Start Arcane stack via docker compose
+  ansible.builtin.command:
+    cmd: docker compose up -d
+    chdir: /opt/arcane
+  become_user: cloud_user
+  changed_when: true

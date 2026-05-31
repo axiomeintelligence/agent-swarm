@@ -1,14 +1,22 @@
-# Copy to vars/komodo.yml (git-ignored) and fill in real values before running.
-# Generate each secret with: openssl rand -hex 32
+# Komodo orchestrator vars.
+# Copy to vars/server.yml (git-ignored) and fill in real values before running.
+# Generate secrets with: openssl rand -hex 32
 #
-#   cp vars/komodo.example.yml vars/komodo.yml
-#   # Edit vars/komodo.yml — replace all placeholder values
+#   cp vars/komodo.example.yml vars/server.yml
 
-komodo_database_password: "<mongo-password>"
-komodo_jwt_secret: "<jwt-secret>"
-komodo_webhook_secret: "<webhook-secret>"
+orchestrator: komodo
+
+# Generate with: openssl rand -hex 32
+komodo_database_password: "<openssl rand -hex 32>"
+komodo_jwt_secret: "<openssl rand -hex 32>"
+komodo_webhook_secret: "<openssl rand -hex 32>"
 komodo_admin_username: "admin"
 komodo_admin_password: "<admin-password>"
+
+# GitHub access for private repos — injected into Komodo Core as a git provider.
+# Leave blank if the instance repo is public.
+komodo_github_username: "<github-username>"
+komodo_github_pat: "<github-personal-access-token>"
 
 # Resource Sync bootstrap — used by tasks/resource-sync.yml
 # Points Komodo at the instance repo containing agent-stacks/komodo.toml
@@ -16,8 +24,7 @@ komodo_resource_sync_name: "<client-name>-instance"
 komodo_instance_repo: "<your-org>/<your-instance-repo>"
 komodo_instance_branch: "main"
 komodo_resource_path: "agent-stacks/komodo.toml"
-# Git account configured in Komodo Settings → Providers (required for private repos)
-komodo_git_account: "<github-account-name>"
+komodo_git_account: "{{ komodo_github_username }}"
 
 # Age private key for SOPS secret decryption on this server.
 # Generate locally: age-keygen  (install: brew install age)

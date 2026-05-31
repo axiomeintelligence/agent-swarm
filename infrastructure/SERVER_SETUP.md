@@ -6,17 +6,13 @@
 
 Access to the server instance is locked down to the Tailscale VPN. A Cloud Firewall restricts all inbound traffic to only what Tailscale requires, preventing any direct public access to the server or its services. iptables running on the server instance additionally blocks inbound traffic, providing a layer of defense in depth in case of misconfiguration.
 
-Note that all outbound ports are open, to facilitate cloudflared, tailscale, and updates. See (Further Security Enhancements)
+Note that all outbound ports are open, to facilitate cloudflared, tailscale, and updates.
 
 Cloudflare Tunnels are used to access individual services, and must be protected with sufficient Cloudflare Access policies to control access. SSO and MFA is recommended.
 
 NOTE: OpenSSH is disabled — Tailscale SSH is the only access path, available over the Tailscale network only. Appropriate Tailscale ACLs should be implemented to prevent privilege escalation.
 
 Emergency access is available via the Cloud's VNC to fix any Tailscale misconfiguration.
-
-#### Further Security Enhancements (Out of Scope)
-
-To further secure this instance, a layer 7 traffic inspection firewall policy should be implemented to prevent data exfiltration in the event of a compromise on outbound ports. Due to the ability to tunnel outbound traffic over http/https and similar ports that need to be left open, this presents little additional protection, unless a layer 7 firewall is utilized.
 
 ### Administering the Server
 
@@ -25,7 +21,7 @@ All server administration is done over the Tailscale network. Install the Tailsc
 - **macOS:** https://tailscale.com/download/macos
 - **Android/iOS:** Available in respective app stores (optional)
 
-Services running on the server (e.g. Komodo) are accessed directly over the Tailscale network via MagicDNS hostname. No public ports are exposed for services. iptables restricts the necessary ports on the server instance to the `tailscale0` interface.
+Services running on the server are accessed directly over the Tailscale network via MagicDNS hostname. No public ports are exposed for services.
 
 ---
 
@@ -107,7 +103,7 @@ Replace the one placeholder before pasting into the server instance cloud-config
 |---|---|
 | `<tailscale-auth-key>` | Auth key from Tailscale admin console (Step 1.3) |
 
-All other configuration (Docker, Komodo, Periphery) is handled by Ansible after first boot.
+All other configuration (Docker, orchestrator, agents) is handled by Ansible after first boot.
 
 ---
 
@@ -138,14 +134,6 @@ Tailscale may open a browser window or print a URL asking you to approve the SSH
 A previous server used the same Tailscale hostname. Remove the stale entry:
 
 ```bash
-# Find and delete the conflicting line — the error output will tell you the exact line number
-nano ~/.ssh/known_hosts
-# Delete the line for <tailscale-hostname>, save, and re-run ssh
-```
-
-Or use `ssh-keygen` to remove it directly:
-
-```bash
 ssh-keygen -R <tailscale-hostname>
 ```
 
@@ -153,11 +141,15 @@ Once you have successfully connected and see the shell prompt, type `exit`. Ansi
 
 ---
 
-### 6. Run Ansible
+### 6. Ansible Prerequisites
 
-Ansible handles Docker, Komodo, and Periphery installation. It connects over Tailscale SSH as `cloud_user` — no password or SSH key required.
+Install Ansible locally if you haven't already:
 
-**Step 1 — Copy and fill inventory:**
+```bash
+pip install ansible
+```
+
+Copy and fill the inventory file:
 
 ```bash
 cd infrastructure/ansible
@@ -166,223 +158,13 @@ cp inventory/hosts.example inventory/hosts
 # Example: hz-agents-0 ansible_user=cloud_user
 ```
 
-**Step 2 — Copy and fill vars:**
-
-```bash
-cp vars/komodo.example.yml vars/komodo.yml
-# Edit vars/komodo.yml — generate and fill in each secret:
-#   openssl rand -hex 32
-```
-
-**Step 3 — Run the playbook:**
-
-```bash
-ansible-playbook -i inventory/hosts site.yml
-```
-
-The playbook will:
-1. Install Docker CE on the server
-2. Deploy Komodo (Core + MongoDB) via docker compose
-3. **Pause** and prompt you to create a Komodo onboarding key in the browser
-4. Install and register Periphery with the key you provide
-
-The server will appear under **Servers** in the Komodo UI within seconds of Periphery registering.
-
-> `inventory/hosts` and `vars/komodo.yml` are gitignored — never committed.
+> `inventory/hosts` is gitignored — never committed.
 
 ---
 
-### 7. SOPS Secret Management
+### 7. Next Steps — Choose Your Orchestrator
 
-Stack-level secrets are committed to the instance repo as SOPS-encrypted `.enc.env` files and decrypted on the server by Komodo's Repo `on_pull` hook.
+Follow the guide for your chosen orchestrator:
 
-**Prerequisites — install locally:**
-
-```bash
-brew install age sops   # macOS
-```
-
-**Setup for a new server:**
-
-```bash
-# 1. Generate an age keypair (run on your local machine — not on the server)
-age-keygen
-# Output:
-#   # created: 2026-05-29T00:00:00Z
-#   # public key: age1xxxx...
-#   AGE-SECRET-KEY-1yyyy...
-
-# 2. Add the PRIVATE key to ansible/vars/komodo.yml under age_private_key
-#    (git-ignored — never commit this file)
-
-# 3. Add the PUBLIC key to the instance repo's .sops.yaml:
-#    - path_regex: ^agent-stacks/<stack-name>/.*\.enc\.env$
-#      age: age1xxxx...
-
-# 4. Re-run the Ansible playbook (or just the sops task):
-ansible-playbook -i inventory/hosts site.yml --tags sops
-# This installs sops and writes the age private key to /root/.config/sops/age/keys.txt
-```
-
-The age private key is written to `/root/.config/sops/age/keys.txt` by the `sops.yml` Ansible task. Komodo's `on_pull` script calls `sops --decrypt`, which reads the key from that path automatically.
-
-**Editing encrypted secrets:**
-
-```bash
-# From the instance repo (e.g. axiome_intelligence):
-sops agent-stacks/<stack-name>/.enc.env
-# Opens in $EDITOR — save to re-encrypt automatically
-```
-
----
-
-### 8. Komodo Stack Setup (Instance Repo)
-
-This step configures Komodo to watch your instance repo and deploy stacks from it. Complete this after the server is running (Steps 1–6) and SOPS is configured (Step 7).
-
-#### 8.1 Create the instance repo
-
-Fork or derive an instance repo (e.g. `your-org/your-instance`) — this holds your Komodo resource manifest and encrypted stack secrets. The `agent-stacks/` directory structure is:
-
-```
-agent-stacks/
-├── komodo.toml          # Komodo Resource Sync manifest
-├── <stack-name>/
-│   └── .enc.env         # SOPS-encrypted env file for the stack
-└── ...
-```
-
-#### 8.2 Configure komodo.toml
-
-Copy and adapt `agent-stacks/komodo.toml` from this template. Key values to update:
-
-| Field | Description |
-|---|---|
-| `Repo.config.server` | MagicDNS hostname of your Komodo server (e.g. `hz-agents-0`) |
-| `Repo.config.repo` | `your-org/your-instance` |
-| `Stack.config.server` | Same MagicDNS hostname |
-| `Stack.config.repo` | The stack's docker compose repo (e.g. `your-org/axiome-agent-swarm`) |
-| `on_clone.command` / `on_pull.command` | Adjust paths to match actual Komodo repo/stack directories on the server |
-
-> **Verify on-server paths before first deploy.** Komodo clones repos and stores stack files under paths configured in its settings. Check the actual directories (`ls /root/repos/` and `ls /root/stacks/` are common defaults) and update the `on_pull` decrypt command accordingly.
-
-#### 8.3 Create and encrypt the stack env file
-
-```bash
-# 1. Copy the template and fill in values
-cp /tmp/your-stack.env agent-stacks/<stack-name>/.enc.env
-
-# 2. Encrypt in-place (requires .sops.yaml with your age public key)
-sops --encrypt --in-place agent-stacks/<stack-name>/.enc.env
-
-# 3. Commit
-git add agent-stacks/<stack-name>/.enc.env
-git commit -m "feat: add encrypted <stack-name> env"
-git push
-```
-
-The decrypted `.env` is never committed — only the SOPS-encrypted `.enc.env`.
-
-#### 8.4 Register the Resource Sync in Komodo
-
-The `komodo.toml` file is just a manifest — Komodo doesn't discover it automatically. You must register a Resource Sync once in the UI. After that, every push to the instance repo triggers a re-sync that creates or updates the resources defined in the TOML.
-
-**How the paths connect:**
-
-```
-Instance repo (e.g. your-org/your-instance)
-└── agent-stacks/
-    ├── komodo.toml          ← Resource Sync points here
-    │     [[Repo]]   → clones your-org/your-instance onto the server
-    │     [[Stack]]  → clones your-org/axiome-agent-swarm onto the server
-    │     [[Procedure]] → links the two: pull repo (decrypt) → deploy stack
-    └── <stack-name>/
-        └── .enc.env         ← decrypted by on_pull into /root/stacks/<stack>/.env
-```
-
-The Resource Sync reads `komodo.toml` and materialises the Repo, Stack, and Procedure as live resources in Komodo. The Repo resource clones the instance repo (so Komodo can run the `on_pull` decrypt command). The Stack resource points at the agent-swarm compose repo. The Procedure ties them together.
-
-**Automated (recommended):**
-
-Fill in the Resource Sync vars in `vars/komodo.yml` (added to `komodo.example.yml`), then run:
-
-```bash
-ansible-playbook -i inventory/hosts site.yml --tags resource-sync
-```
-
-This authenticates to Komodo, creates the sync if it doesn't exist, and runs the initial sync — all idempotent.
-
-**Manual (UI fallback):**
-
-1. Open Komodo UI → **Resource Sync** in the left sidebar
-2. Click **New Resource Sync**
-3. Fill in:
-   - **Name** — e.g. `<client-name>-instance`
-   - **Repo** — your instance repo (e.g. `your-org/your-instance`)
-   - **Branch** — `main`
-   - **Resource path** — `agent-stacks/komodo.toml`
-4. Click **Save**, then click **Sync**
-
-After the sync (either method), verify in the sidebar:
-- **Repos** → your repo entry appears
-- **Stacks** → your stack entry appears
-- **Procedures** → `deploy-<client-name>-swarm` appears
-
-> For private repos, add a GitHub token under **Settings → Providers** in the Komodo UI before syncing, and set `komodo_git_account` in `vars/komodo.yml` to the account name.
-
-#### 8.5 Verify the first deploy
-
-1. In Komodo UI → **Procedures** → open `deploy-<client-name>-swarm` → **Run**
-2. Check the run log — the `on_pull` decrypt step runs first, then the stack deploys
-3. Confirm the stack appears under **Stacks** with status Running
-
----
-
-### 9. GitHub Actions — Automatic Deploys
-
-After every push to `agent-stacks/**` in the instance repo, a GitHub Actions workflow automatically triggers the Komodo deploy procedure over the Tailnet.
-
-#### 9.1 Create a Tailscale auth key for CI
-
-1. Go to https://login.tailscale.com/admin/settings/keys
-2. Click **Generate auth key**
-3. Enable **Ephemeral** (runner node is removed after the job) and **Pre-authorized**
-4. Expand **Tags** and add `tag:ci`
-5. Copy the key
-
-> The `tag:ci` tag restricts this key per the ACL policy in `infrastructure/tailscale/acl-policy.example.hujson` — it can only reach Komodo on port 9120, not SSH or other services.
-
-#### 9.2 Get your Komodo API key
-
-1. Open Komodo UI → click your **username/avatar** in the sidebar (bottom-left)
-2. Go to your **Profile** page → **API Keys** → **Create**
-3. Komodo displays two fields: **Key ID** and **Secret** — store these as separate GitHub secrets
-
-#### 9.3 Add GitHub secrets
-
-In your instance repo → **Settings** → **Secrets and variables** → **Actions**:
-
-| Secret | Value |
-|---|---|
-| `TAILSCALE_AUTH_KEY` | Auth key from Step 9.1 |
-| `KOMODO_URL` | `http://<server-tailscale-hostname>:9120` (no trailing slash) |
-| `KOMODO_API_KEY` | **Key ID** field from Komodo Profile → API Keys |
-| `KOMODO_API_SECRET` | **Secret** field from Komodo Profile → API Keys |
-
-Or via CLI:
-
-```bash
-gh secret set TAILSCALE_AUTH_KEY --repo your-org/your-instance
-gh secret set KOMODO_URL         --repo your-org/your-instance
-gh secret set KOMODO_API_KEY     --repo your-org/your-instance
-gh secret set KOMODO_API_SECRET  --repo your-org/your-instance
-```
-
-#### 9.4 Verify the workflow
-
-Push any change to `agent-stacks/` and check **Actions** in your repo. The workflow:
-1. Joins the Tailnet as an ephemeral `tag:ci` node
-2. POSTs to Komodo's `RunProcedure` endpoint
-3. Komodo pulls the repo (decrypting secrets via `on_pull`) and redeploys the stack
-
-> The workflow file is at `.github/workflows/komodo-deploy.yml` in the instance repo. Adapt the procedure name in the `curl` body to match the `name` field of your `[[Procedure]]` in `komodo.toml` (e.g. `deploy-<client-name>-swarm`).
+- **[Arcane Setup](ARCANE_SETUP.md)** — lightweight single-container orchestrator (recommended)
+- **[Komodo Setup](KOMODO_SETUP.md)** — full-featured orchestrator with MongoDB and GitOps sync

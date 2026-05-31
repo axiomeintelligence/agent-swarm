@@ -1,19 +1,53 @@
 ---
-# Play 1: Install Docker, SOPS, and deploy Komodo on the server
-- name: Install Docker, SOPS, and deploy Komodo
+# Orchestrator is selected by the 'orchestrator' key in vars/server.yml.
+# Copy the appropriate example file before running:
+#
+#   Arcane:  cp vars/arcane.example.yml vars/server.yml
+#   Komodo:  cp vars/komodo.example.yml vars/server.yml
+#
+# Targeted re-runs:
+#   --tags docker          Reinstall Docker
+#   --tags sops            Update SOPS / age key
+#   --tags arcane          Redeploy Arcane
+#   --tags komodo          Redeploy Komodo
+#   --tags periphery       Rerun Komodo Periphery onboarding
+#   --tags resource-sync   Rerun Komodo Resource Sync bootstrap
+
+# Play 1: Install Docker and SOPS (shared by all orchestrators)
+- name: Install Docker and SOPS
   hosts: servers
   become: true
   vars_files:
-    - vars/komodo.yml
+    - vars/server.yml
   tasks:
     - ansible.builtin.import_tasks: tasks/docker.yml
       tags: docker
     - ansible.builtin.import_tasks: tasks/sops.yml
       tags: sops
-    - ansible.builtin.import_tasks: tasks/komodo.yml
-      tags: komodo
 
-# Play 2: Pause on localhost to collect the Komodo onboarding key
+# Play 2: Deploy Arcane
+- name: Deploy Arcane
+  hosts: servers
+  become: true
+  tags: arcane
+  vars_files:
+    - vars/server.yml
+  tasks:
+    - ansible.builtin.import_tasks: tasks/arcane.yml
+      when: orchestrator == 'arcane'
+
+# Play 3: Deploy Komodo
+- name: Deploy Komodo
+  hosts: servers
+  become: true
+  tags: komodo
+  vars_files:
+    - vars/server.yml
+  tasks:
+    - ansible.builtin.import_tasks: tasks/komodo.yml
+      when: orchestrator == 'komodo'
+
+# Play 4: Komodo only — pause to collect the Periphery onboarding key
 - name: Collect Komodo onboarding key
   hosts: localhost
   gather_facts: false
@@ -36,24 +70,26 @@
       register: komodo_onboarding_key
       when: onboarding_key is not defined
 
-# Play 3: Install Periphery on the server using the onboarding key from Play 2
+# Play 5: Komodo only — install Periphery
 - name: Install Periphery
   hosts: servers
   become: true
   tags: periphery
+  vars_files:
+    - vars/server.yml
   tasks:
     - ansible.builtin.import_tasks: tasks/periphery.yml
+      when: orchestrator == 'komodo'
       vars:
         onboarding_key: "{{ onboarding_key | default(hostvars['localhost']['komodo_onboarding_key']['user_input']) }}"
 
-# Play 4: Bootstrap Komodo Resource Sync for the instance repo
-# Run after Periphery is registered and the instance repo + komodo.toml are ready.
-# Skip with: ansible-playbook site.yml --skip-tags resource-sync
+# Play 6: Komodo only — bootstrap Resource Sync for the instance repo
 - name: Bootstrap Komodo Resource Sync
   hosts: servers
   become: true
   tags: resource-sync
   vars_files:
-    - vars/komodo.yml
+    - vars/server.yml
   tasks:
     - ansible.builtin.import_tasks: tasks/resource-sync.yml
+      when: orchestrator == 'komodo'
