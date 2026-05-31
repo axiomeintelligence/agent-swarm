@@ -11,6 +11,7 @@
 #   --tags komodo          Redeploy Komodo Core + MongoDB
 #   --tags periphery       Rerun Periphery onboarding
 #   --tags resource-sync   Rerun Resource Sync bootstrap
+#   --tags teardown        Remove Komodo (stops containers, removes Periphery, deletes dirs, removes firewall rule)
 #
 # Re-run Periphery with a known onboarding key (skips the pause):
 #   ansible-playbook -i inventory/hosts komodo.yml --tags periphery \

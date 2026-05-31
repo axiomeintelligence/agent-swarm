@@ -1,30 +1,27 @@
 ---
-- name: Validate required variables
-  ansible.builtin.assert:
-    that:
-      - age_private_key is defined
-      - age_private_key | length > 0
-    fail_msg: |
-      age_private_key is required but not set.
-      1. Run: age-keygen  (install: brew install age)
-      2. Copy the entire AGE-SECRET-KEY-1... line into vars/komodo.yml under age_private_key
-      3. The public key printed by age-keygen goes into the instance repo's .sops.yaml
+- name: Skip SOPS setup (age_private_key not set)
+  ansible.builtin.debug:
+    msg: "age_private_key is not set — skipping SOPS/age setup. Set it in vars/server.yml to enable secret decryption."
+  when: age_private_key is not defined or age_private_key | length == 0
 
 - name: Get latest sops release metadata
   ansible.builtin.uri:
     url: https://api.github.com/repos/getsops/sops/releases/latest
     return_content: true
   register: sops_release
+  when: age_private_key is defined and age_private_key | length > 0
 
 - name: Set sops version fact
   ansible.builtin.set_fact:
     sops_version: "{{ sops_release.json.tag_name }}"
+  when: age_private_key is defined and age_private_key | length > 0
 
 - name: Install sops binary
   ansible.builtin.get_url:
     url: "https://github.com/getsops/sops/releases/download/{{ sops_version }}/sops-{{ sops_version }}.linux.amd64"
     dest: /usr/local/bin/sops
     mode: "0755"
+  when: age_private_key is defined and age_private_key | length > 0
 
 - name: Verify sops binary works
   ansible.builtin.command:
@@ -32,12 +29,14 @@
   changed_when: false
   register: sops_version_check
   failed_when: sops_version_check.rc != 0
+  when: age_private_key is defined and age_private_key | length > 0
 
 - name: Create age key directory
   ansible.builtin.file:
     path: /root/.config/sops/age
     state: directory
     mode: "0700"
+  when: age_private_key is defined and age_private_key | length > 0
 
 - name: Write age private key
   ansible.builtin.copy:
@@ -47,6 +46,7 @@
     owner: root
     group: root
   no_log: true
+  when: age_private_key is defined and age_private_key | length > 0
 
 - name: Verify age private key format
   ansible.builtin.command:
@@ -55,3 +55,4 @@
   no_log: true
   register: age_key_check
   failed_when: age_key_check.rc != 0
+  when: age_private_key is defined and age_private_key | length > 0

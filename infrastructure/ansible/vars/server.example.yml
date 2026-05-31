@@ -1,19 +1,20 @@
 # Shared server vars — used by site.yml (Docker + SOPS provisioning).
-# Copy to vars/server.yml (git-ignored) and fill in the age private key.
+# Copy to vars/server.yml (git-ignored) and fill in values.
 #
 #   cp vars/server.example.yml vars/server.yml
 
 # Age private key for SOPS secret decryption on this server.
-# Generate locally: age-keygen  (install: brew install age)
+# OPTIONAL — leave blank or omit entirely to skip SOPS/age setup.
 #
-# The public key printed by age-keygen goes into the instance repo's .sops.yaml
-# under creation_rules for this server's stacks. Keep only the PRIVATE key here.
+# Generate locally: age-keygen  (install: brew install age)
+# The public key printed by age-keygen goes into the instance repo's .sops.yaml.
 #
 # Example output from age-keygen:
 #   # created: 2026-05-29T00:00:00Z
 #   # public key: age1xxxx...
 #   AGE-SECRET-KEY-1yyyy...
-age_private_key: |
-  # created: <timestamp>
-  # public key: age1<your-public-key-here>
-  AGE-SECRET-KEY-1<your-private-key-here>
+#
+# age_private_key: |
+#   # created: <timestamp>
+#   # public key: age1<your-public-key-here>
+#   AGE-SECRET-KEY-1<your-private-key-here>

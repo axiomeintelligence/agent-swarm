@@ -6,11 +6,13 @@
     destination_port: "3552"
     jump: ACCEPT
     comment: Arcane Web UI — Tailscale only
+  tags: arcane
 
 - name: Persist iptables rules
   ansible.builtin.command:
     cmd: netfilter-persistent save
   changed_when: true
+  tags: arcane
 
 - name: Create Arcane directory
   ansible.builtin.file:
@@ -19,6 +21,7 @@
     owner: cloud_user
     group: docker
     mode: '0750'
+  tags: arcane
 
 - name: Write Arcane docker-compose.yml
   ansible.builtin.copy:
@@ -41,6 +44,7 @@
 
       volumes:
         arcane-data:
+  tags: arcane
 
 - name: Write Arcane compose.env from template
   ansible.builtin.template:
@@ -49,6 +53,7 @@
     owner: cloud_user
     group: cloud_user
     mode: '0600'
+  tags: arcane
 
 - name: Start Arcane stack via docker compose
   ansible.builtin.command:
@@ -56,3 +61,37 @@
     chdir: /opt/arcane
   become_user: cloud_user
   changed_when: true
+  tags: arcane
+
+# --- Teardown (--tags teardown) ---
+
+- name: "[teardown] Stop and remove Arcane stack"
+  ansible.builtin.command:
+    cmd: docker compose down -v
+    chdir: /opt/arcane
+  become_user: cloud_user
+  ignore_errors: true
+  changed_when: true
+  tags: teardown
+
+- name: "[teardown] Remove Arcane directory"
+  ansible.builtin.file:
+    path: /opt/arcane
+    state: absent
+  tags: teardown
+
+- name: "[teardown] Remove Arcane iptables rule"
+  ansible.builtin.iptables:
+    chain: INPUT
+    in_interface: tailscale0
+    protocol: tcp
+    destination_port: "3552"
+    jump: ACCEPT
+    state: absent
+  tags: teardown
+
+- name: "[teardown] Persist iptables after removing Arcane rule"
+  ansible.builtin.command:
+    cmd: netfilter-persistent save
+  changed_when: true
+  tags: teardown

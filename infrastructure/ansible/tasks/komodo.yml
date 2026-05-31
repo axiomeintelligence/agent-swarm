@@ -1,3 +1,19 @@
+- name: Allow Komodo Web UI on Tailscale interface
+  ansible.builtin.iptables:
+    chain: INPUT
+    in_interface: tailscale0
+    protocol: tcp
+    destination_port: "9120"
+    jump: ACCEPT
+    comment: Komodo Web UI — Tailscale only
+  tags: komodo
+
+- name: Persist iptables rules
+  ansible.builtin.command:
+    cmd: netfilter-persistent save
+  changed_when: true
+  tags: komodo
+
 - name: Create Komodo directory
   ansible.builtin.file:
     path: /opt/komodo
@@ -5,6 +21,7 @@
     owner: cloud_user
     group: docker
     mode: '0750'
+  tags: komodo
 
 - name: Create Komodo backups directory
   ansible.builtin.file:
@@ -13,6 +30,7 @@
     owner: cloud_user
     group: docker
     mode: '0750'
+  tags: komodo
 
 - name: Write Komodo docker-compose.yml
   ansible.builtin.copy:
@@ -55,6 +73,7 @@
         mongo-data:
         mongo-config:
         keys:
+  tags: komodo
 
 - name: Write Komodo compose.env from template
   ansible.builtin.template:
@@ -63,6 +82,7 @@
     owner: cloud_user
     group: cloud_user
     mode: '0600'
+  tags: komodo
 
 - name: Start Komodo stack via docker compose
   ansible.builtin.command:
@@ -70,3 +90,62 @@
     chdir: /opt/komodo
   become_user: cloud_user
   changed_when: true
+  tags: komodo
+
+# --- Teardown (--tags teardown) ---
+
+- name: "[teardown] Stop Periphery service"
+  ansible.builtin.systemd:
+    name: periphery
+    state: stopped
+    enabled: false
+  ignore_errors: true
+  tags: teardown
+
+- name: "[teardown] Remove Periphery binary and service"
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /usr/local/bin/periphery
+    - /etc/systemd/system/periphery.service
+  tags: teardown
+
+- name: "[teardown] Reload systemd after removing Periphery"
+  ansible.builtin.systemd:
+    daemon_reload: true
+  tags: teardown
+
+- name: "[teardown] Stop and remove Komodo stack"
+  ansible.builtin.command:
+    cmd: docker compose down -v
+    chdir: /opt/komodo
+  become_user: cloud_user
+  ignore_errors: true
+  changed_when: true
+  tags: teardown
+
+- name: "[teardown] Remove Komodo directories"
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /opt/komodo
+    - /etc/komodo
+  tags: teardown
+
+- name: "[teardown] Remove Komodo iptables rule"
+  ansible.builtin.iptables:
+    chain: INPUT
+    in_interface: tailscale0
+    protocol: tcp
+    destination_port: "9120"
+    jump: ACCEPT
+    state: absent
+  tags: teardown
+
+- name: "[teardown] Persist iptables after removing Komodo rule"
+  ansible.builtin.command:
+    cmd: netfilter-persistent save
+  changed_when: true
+  tags: teardown

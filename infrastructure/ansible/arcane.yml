@@ -8,7 +8,8 @@
 #   ansible-playbook -i inventory/hosts arcane.yml
 #
 # Targeted re-runs:
-#   --tags arcane   Redeploy Arcane only
+#   --tags arcane      Redeploy Arcane only
+#   --tags teardown    Remove Arcane (stops containers, deletes /opt/arcane, removes firewall rule)
 
 - name: Deploy Arcane
   hosts: servers
