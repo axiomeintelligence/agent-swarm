@@ -8,7 +8,7 @@ services:
     container_name: ${CONTAINER_NAME:-assistant}
     hostname: ${CONTAINER_NAME:-assistant}
     restart: unless-stopped
-    command: ["--insecure"]                  # skip OAuth gate — safe on Tailscale-only networks
+    command: gateway run --insecure          # skip OAuth gate — safe on Tailscale-only networks
     depends_on:
       gbrain:
         condition: service_healthy
