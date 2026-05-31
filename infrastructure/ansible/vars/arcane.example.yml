@@ -7,8 +7,10 @@
 # Generate with: openssl rand -hex 32
 arcane_encryption_key: "<openssl rand -hex 32>"
 arcane_jwt_secret: "<openssl rand -hex 32>"
-arcane_puid: 1000
-arcane_pgid: 1000
+# Optional:
+# arcane_puid: 1000
+# Optional:
+#arcane_pgid: 1000
 
 # Age private key for SOPS secret decryption on this server.
 # Generate locally: age-keygen  (install: brew install age)
@@ -20,7 +22,6 @@ arcane_pgid: 1000
 #   # created: 2026-05-29T00:00:00Z
 #   # public key: age1xxxx...
 #   AGE-SECRET-KEY-1yyyy...
-age_private_key: |
-  # created: <timestamp>
-  # public key: age1<your-public-key-here>
-  AGE-SECRET-KEY-1<your-private-key-here>
+# Optional:
+#age_private_key: |
+  #AGE-SECRET-KEY-1<your-private-key-here>
