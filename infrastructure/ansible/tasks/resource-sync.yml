@@ -1,0 +1,68 @@
+---
+# Bootstrap a Komodo Resource Sync pointing at the instance repo.
+# Idempotent: checks if the sync exists before creating it.
+# Requires vars: komodo_admin_username, komodo_admin_password, komodo_resource_sync_name,
+#                komodo_instance_repo, komodo_instance_branch, komodo_resource_path,
+#                komodo_git_account (optional, for private repos)
+
+- name: Authenticate with Komodo to get JWT
+  ansible.builtin.uri:
+    url: "http://localhost:9120/auth/login/LoginLocalUser"
+    method: POST
+    body_format: json
+    body:
+      username: "{{ komodo_admin_username }}"
+      password: "{{ komodo_admin_password }}"
+    status_code: 200
+  register: komodo_auth
+  no_log: true
+
+- name: Extract JWT from login response
+  ansible.builtin.set_fact:
+    komodo_jwt: "{{ komodo_auth.json.data.jwt }}"
+  no_log: true
+
+- name: Check if Resource Sync already exists
+  ansible.builtin.uri:
+    url: "http://localhost:9120/read/GetResourceSync"
+    method: POST
+    body_format: json
+    body:
+      sync: "{{ komodo_resource_sync_name }}"
+    headers:
+      Authorization: "{{ komodo_jwt }}"
+    status_code: [200, 400, 404]
+  register: komodo_sync_check
+
+- name: Create Resource Sync
+  ansible.builtin.uri:
+    url: "http://localhost:9120/write/CreateResourceSync"
+    method: POST
+    body_format: json
+    body:
+      name: "{{ komodo_resource_sync_name }}"
+      config:
+        repo: "{{ komodo_instance_repo }}"
+        branch: "{{ komodo_instance_branch | default('main') }}"
+        resource_path: ["{{ komodo_resource_path | default('agent-stacks/komodo.toml') }}"]
+        git_provider: "{{ komodo_git_provider | default('github.com') }}"
+        git_account: "{{ komodo_git_account | default('') }}"
+        git_https: true
+        include_resources: true
+    headers:
+      Authorization: "{{ komodo_jwt }}"
+    status_code: 200
+  when: komodo_sync_check.status != 200
+  register: komodo_sync_create
+
+- name: Run initial Resource Sync
+  ansible.builtin.uri:
+    url: "http://localhost:9120/execute/RunSync"
+    method: POST
+    body_format: json
+    body:
+      sync: "{{ komodo_resource_sync_name }}"
+    headers:
+      Authorization: "{{ komodo_jwt }}"
+    status_code: 200
+  when: komodo_sync_create is not skipped

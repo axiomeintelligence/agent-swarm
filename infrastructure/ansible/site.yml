@@ -45,3 +45,15 @@
     - ansible.builtin.import_tasks: tasks/periphery.yml
       vars:
         onboarding_key: "{{ onboarding_key | default(hostvars['localhost']['komodo_onboarding_key']['user_input']) }}"
+
+# Play 4: Bootstrap Komodo Resource Sync for the instance repo
+# Run after Periphery is registered and the instance repo + komodo.toml are ready.
+# Skip with: ansible-playbook site.yml --skip-tags resource-sync
+- name: Bootstrap Komodo Resource Sync
+  hosts: servers
+  become: true
+  tags: resource-sync
+  vars_files:
+    - vars/komodo.yml
+  tasks:
+    - ansible.builtin.import_tasks: tasks/resource-sync.yml

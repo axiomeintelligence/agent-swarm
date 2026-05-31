@@ -302,23 +302,33 @@ Instance repo (e.g. your-org/your-instance)
 
 The Resource Sync reads `komodo.toml` and materialises the Repo, Stack, and Procedure as live resources in Komodo. The Repo resource clones the instance repo (so Komodo can run the `on_pull` decrypt command). The Stack resource points at the agent-swarm compose repo. The Procedure ties them together.
 
-**Steps:**
+**Automated (recommended):**
+
+Fill in the Resource Sync vars in `vars/komodo.yml` (added to `komodo.example.yml`), then run:
+
+```bash
+ansible-playbook -i inventory/hosts site.yml --tags resource-sync
+```
+
+This authenticates to Komodo, creates the sync if it doesn't exist, and runs the initial sync — all idempotent.
+
+**Manual (UI fallback):**
 
 1. Open Komodo UI → **Resource Sync** in the left sidebar
 2. Click **New Resource Sync**
 3. Fill in:
-   - **Name** — any label (e.g. `<client-name>-instance`)
+   - **Name** — e.g. `<client-name>-instance`
    - **Repo** — your instance repo (e.g. `your-org/your-instance`)
    - **Branch** — `main`
    - **Resource path** — `agent-stacks/komodo.toml`
-4. Click **Save**, then click **Sync** — Komodo reads the TOML and creates all resources
+4. Click **Save**, then click **Sync**
 
-After the sync, verify in the sidebar:
+After the sync (either method), verify in the sidebar:
 - **Repos** → your repo entry appears
 - **Stacks** → your stack entry appears
 - **Procedures** → `deploy-<client-name>-swarm` appears
 
-> The Resource Sync requires Komodo to be able to clone the instance repo. If the repo is private, add a GitHub token under **Settings → Providers** in the Komodo UI before syncing.
+> For private repos, add a GitHub token under **Settings → Providers** in the Komodo UI before syncing, and set `komodo_git_account` in `vars/komodo.yml` to the account name.
 
 #### 8.5 Verify the first deploy
 

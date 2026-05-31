@@ -7,7 +7,17 @@
 komodo_database_password: "<mongo-password>"
 komodo_jwt_secret: "<jwt-secret>"
 komodo_webhook_secret: "<webhook-secret>"
+komodo_admin_username: "admin"
 komodo_admin_password: "<admin-password>"
+
+# Resource Sync bootstrap — used by tasks/resource-sync.yml
+# Points Komodo at the instance repo containing agent-stacks/komodo.toml
+komodo_resource_sync_name: "<client-name>-instance"
+komodo_instance_repo: "<your-org>/<your-instance-repo>"
+komodo_instance_branch: "main"
+komodo_resource_path: "agent-stacks/komodo.toml"
+# Git account configured in Komodo Settings → Providers (required for private repos)
+komodo_git_account: "<github-account-name>"
 
 # Age private key for SOPS secret decryption on this server.
 # Generate locally: age-keygen  (install: brew install age)
