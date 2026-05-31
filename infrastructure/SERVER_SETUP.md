@@ -314,8 +314,9 @@ After every push to `agent-stacks/**` in the instance repo, a GitHub Actions wor
 
 #### 9.2 Get your Komodo API key
 
-1. Open Komodo UI → **Settings** → **API Keys** → **Create**
-2. Copy the key
+1. Open Komodo UI → click your **username/avatar** in the sidebar (bottom-left)
+2. Go to your **Profile** page → **API Keys** → **Create**
+3. Copy the full key (format: `<key-id>/<secret>`) — it is shown only once
 
 #### 9.3 Add GitHub secrets
 
