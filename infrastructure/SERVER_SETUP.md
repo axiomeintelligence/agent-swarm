@@ -233,3 +233,113 @@ The age private key is written to `/root/.config/sops/age/keys.txt` by the `sops
 sops agent-stacks/<stack-name>/.enc.env
 # Opens in $EDITOR — save to re-encrypt automatically
 ```
+
+---
+
+### 8. Komodo Stack Setup (Instance Repo)
+
+This step configures Komodo to watch your instance repo and deploy stacks from it. Complete this after the server is running (Steps 1–6) and SOPS is configured (Step 7).
+
+#### 8.1 Create the instance repo
+
+Fork or derive an instance repo (e.g. `your-org/your-instance`) — this holds your Komodo resource manifest and encrypted stack secrets. The `agent-stacks/` directory structure is:
+
+```
+agent-stacks/
+├── komodo.toml          # Komodo Resource Sync manifest
+├── <stack-name>/
+│   └── .enc.env         # SOPS-encrypted env file for the stack
+└── ...
+```
+
+#### 8.2 Configure komodo.toml
+
+Copy and adapt `agent-stacks/komodo.toml` from this template. Key values to update:
+
+| Field | Description |
+|---|---|
+| `Repo.config.server` | MagicDNS hostname of your Komodo server (e.g. `hz-agents-0`) |
+| `Repo.config.repo` | `your-org/your-instance` |
+| `Stack.config.server` | Same MagicDNS hostname |
+| `Stack.config.repo` | The stack's docker compose repo (e.g. `your-org/axiome-agent-swarm`) |
+| `on_clone.command` / `on_pull.command` | Adjust paths to match actual Komodo repo/stack directories on the server |
+
+> **Verify on-server paths before first deploy.** Komodo clones repos and stores stack files under paths configured in its settings. Check the actual directories (`ls /root/repos/` and `ls /root/stacks/` are common defaults) and update the `on_pull` decrypt command accordingly.
+
+#### 8.3 Create and encrypt the stack env file
+
+```bash
+# 1. Copy the template and fill in values
+cp /tmp/your-stack.env agent-stacks/<stack-name>/.enc.env
+
+# 2. Encrypt in-place (requires .sops.yaml with your age public key)
+sops --encrypt --in-place agent-stacks/<stack-name>/.enc.env
+
+# 3. Commit
+git add agent-stacks/<stack-name>/.enc.env
+git commit -m "feat: add encrypted <stack-name> env"
+git push
+```
+
+The decrypted `.env` is never committed — only the SOPS-encrypted `.enc.env`.
+
+#### 8.4 Register the Resource Sync in Komodo
+
+1. Open Komodo UI → **Resource Sync** → **Add Sync**
+2. Set **Repo** to your instance repo and **Branch** to `main`
+3. Set **Resource path** to `agent-stacks/komodo.toml`
+4. Save — Komodo will import the Repo, Stack, and Procedure resources defined in the manifest
+
+#### 8.5 Verify the first deploy
+
+1. In Komodo UI → **Procedures** → open `deploy-<stack-name>` → **Run**
+2. Check the run log — the `on_pull` decrypt step runs first, then the stack deploys
+3. Confirm the stack appears under **Stacks** with status Running
+
+---
+
+### 9. GitHub Actions — Automatic Deploys
+
+After every push to `agent-stacks/**` in the instance repo, a GitHub Actions workflow automatically triggers the Komodo deploy procedure over the Tailnet.
+
+#### 9.1 Create a Tailscale auth key for CI
+
+1. Go to https://login.tailscale.com/admin/settings/keys
+2. Click **Generate auth key**
+3. Enable **Ephemeral** (runner node is removed after the job) and **Pre-authorized**
+4. Expand **Tags** and add `tag:ci`
+5. Copy the key
+
+> The `tag:ci` tag restricts this key per the ACL policy in `infrastructure/tailscale/acl-policy.example.hujson` — it can only reach Komodo on port 9120, not SSH or other services.
+
+#### 9.2 Get your Komodo API key
+
+1. Open Komodo UI → **Settings** → **API Keys** → **Create**
+2. Copy the key
+
+#### 9.3 Add GitHub secrets
+
+In your instance repo → **Settings** → **Secrets and variables** → **Actions**:
+
+| Secret | Value |
+|---|---|
+| `TAILSCALE_AUTH_KEY` | Auth key from Step 9.1 |
+| `KOMODO_URL` | `http://<server-tailscale-hostname>:9120` |
+| `KOMODO_API_KEY` | API key from Step 9.2 |
+
+Or via CLI:
+
+```bash
+gh secret set TAILSCALE_AUTH_KEY --repo your-org/your-instance
+gh secret set KOMODO_URL         --repo your-org/your-instance
+gh secret set KOMODO_API_KEY     --repo your-org/your-instance
+```
+
+#### 9.4 Verify the workflow
+
+Push any change to `agent-stacks/` and check **Actions** in your repo. The workflow:
+1. Joins the Tailnet as an ephemeral `tag:ci` node
+2. POSTs to Komodo's `RunProcedure` endpoint
+3. Komodo pulls the repo (decrypting secrets via `on_pull`) and redeploys the stack
+
+> The workflow file is at `.github/workflows/komodo-deploy.yml` in the instance repo. Adapt the procedure name (`deploy-axiome`) to match what you defined in `komodo.toml`.
