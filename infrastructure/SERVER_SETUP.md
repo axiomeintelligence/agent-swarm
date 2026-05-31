@@ -356,7 +356,7 @@ After every push to `agent-stacks/**` in the instance repo, a GitHub Actions wor
 
 1. Open Komodo UI → click your **username/avatar** in the sidebar (bottom-left)
 2. Go to your **Profile** page → **API Keys** → **Create**
-3. Komodo displays two fields: **Key ID** and **Secret** — combine them as `<key-id>/<secret>` (forward slash separator) when setting the GitHub secret. Neither field alone is sufficient.
+3. Komodo displays two fields: **Key ID** and **Secret** — store these as separate GitHub secrets
 
 #### 9.3 Add GitHub secrets
 
@@ -365,8 +365,9 @@ In your instance repo → **Settings** → **Secrets and variables** → **Actio
 | Secret | Value |
 |---|---|
 | `TAILSCALE_AUTH_KEY` | Auth key from Step 9.1 |
-| `KOMODO_URL` | `http://<server-tailscale-hostname>:9120` |
-| `KOMODO_API_KEY` | API key from Step 9.2 |
+| `KOMODO_URL` | `http://<server-tailscale-hostname>:9120` (no trailing slash) |
+| `KOMODO_API_KEY` | **Key ID** field from Komodo Profile → API Keys |
+| `KOMODO_API_SECRET` | **Secret** field from Komodo Profile → API Keys |
 
 Or via CLI:
 
@@ -374,6 +375,7 @@ Or via CLI:
 gh secret set TAILSCALE_AUTH_KEY --repo your-org/your-instance
 gh secret set KOMODO_URL         --repo your-org/your-instance
 gh secret set KOMODO_API_KEY     --repo your-org/your-instance
+gh secret set KOMODO_API_SECRET  --repo your-org/your-instance
 ```
 
 #### 9.4 Verify the workflow
