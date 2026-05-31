@@ -11,7 +11,7 @@
     method: POST
     body_format: json
     body:
-      username: "{{ komodo_admin_username }}"
+      username: "{{ komodo_admin_username | default('admin') }}"
       password: "{{ komodo_admin_password }}"
     status_code: 200
   register: komodo_auth
@@ -31,8 +31,17 @@
       sync: "{{ komodo_resource_sync_name }}"
     headers:
       Authorization: "{{ komodo_jwt }}"
-    status_code: [200, 400, 404]
+    status_code: [200, 500]
   register: komodo_sync_check
+
+# Komodo returns 500 with "Did not find any ResourceSync" when the sync doesn't exist.
+# Treat that specific 500 as "not found"; any other 500 is a real error.
+- name: Fail on unexpected 500
+  ansible.builtin.fail:
+    msg: "Komodo returned unexpected error: {{ komodo_sync_check.json.error }}"
+  when:
+    - komodo_sync_check.status == 500
+    - "'Did not find any ResourceSync' not in (komodo_sync_check.json.error | default(''))"
 
 - name: Create Resource Sync
   ansible.builtin.uri:
@@ -52,7 +61,7 @@
     headers:
       Authorization: "{{ komodo_jwt }}"
     status_code: 200
-  when: komodo_sync_check.status != 200
+  when: komodo_sync_check.status == 500
   register: komodo_sync_create
 
 - name: Run initial Resource Sync
@@ -65,4 +74,4 @@
     headers:
       Authorization: "{{ komodo_jwt }}"
     status_code: 200
-  when: komodo_sync_create is not skipped
+  when: komodo_sync_create is defined and komodo_sync_create is not skipped
