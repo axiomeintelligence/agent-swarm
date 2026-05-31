@@ -87,7 +87,24 @@ Apply the Tailscale-only cloud firewall (UDP 41641 inbound only). Wait ~2 minute
 tailscale status   # server should appear with a MagicDNS hostname, e.g. hz-agents-0
 ```
 
-#### 2. Create the inventory file
+#### 2. Accept the Tailscale SSH host key (one-time manual step)
+
+Before Ansible can connect, SSH in manually once to accept the server's host key:
+
+```bash
+ssh cloud_user@<tailscale-hostname>
+```
+
+- **Tailscale SSH check prompt:** Tailscale may ask you to approve the connection at https://login.tailscale.com/admin/machines. Approve it there, then re-run the command.
+- **Host key conflict** (`WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED`): A previous server had the same hostname. Remove the stale entry and retry:
+  ```bash
+  ssh-keygen -R <tailscale-hostname>
+  ssh cloud_user@<tailscale-hostname>
+  ```
+
+Once you reach a shell prompt, type `exit`. Ansible will connect without further prompts.
+
+#### 3. Create the inventory file
 
 ```bash
 cd infrastructure/ansible
@@ -103,7 +120,7 @@ hz-agents-0 ansible_user=cloud_user
 
 `inventory/hosts` is gitignored — never commit it.
 
-#### 3. Create the vars file
+#### 4. Create the vars file
 
 ```bash
 cp vars/komodo.example.yml vars/komodo.yml
@@ -120,7 +137,7 @@ komodo_admin_password:     "<output of openssl rand -hex 32>"
 
 `vars/komodo.yml` is gitignored — never commit it.
 
-#### 4. Run the playbook
+#### 5. Run the playbook
 
 ```bash
 ansible-playbook -i inventory/hosts site.yml

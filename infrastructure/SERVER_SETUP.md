@@ -123,6 +123,36 @@ The server should appear with a MagicDNS hostname (e.g. `hz-agents-0`).
 
 ---
 
+### 5.1 Accept the Tailscale SSH Host Key
+
+Before Ansible can connect, you must manually SSH in once to accept the server's host key.
+
+```bash
+ssh cloud_user@<tailscale-hostname>
+```
+
+**If Tailscale prompts for additional SSH checks:**
+Tailscale may open a browser window or print a URL asking you to approve the SSH connection in the admin console. Follow the prompt, approve the check at https://login.tailscale.com/admin/machines, then re-run the SSH command.
+
+**If you see a host key conflict** (`WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED`):
+A previous server used the same Tailscale hostname. Remove the stale entry:
+
+```bash
+# Find and delete the conflicting line — the error output will tell you the exact line number
+nano ~/.ssh/known_hosts
+# Delete the line for <tailscale-hostname>, save, and re-run ssh
+```
+
+Or use `ssh-keygen` to remove it directly:
+
+```bash
+ssh-keygen -R <tailscale-hostname>
+```
+
+Once you have successfully connected and see the shell prompt, type `exit`. Ansible can now connect without further prompts.
+
+---
+
 ### 6. Run Ansible
 
 Ansible handles Docker, Komodo, and Periphery installation. It connects over Tailscale SSH as `cloud_user` — no password or SSH key required.
