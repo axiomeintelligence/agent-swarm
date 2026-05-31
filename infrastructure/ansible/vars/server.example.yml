@@ -1,14 +1,7 @@
-# Arcane orchestrator vars.
-# Copy to vars/arcane.yml (git-ignored) and fill in real values before running.
-# Generate secrets with: openssl rand -hex 32
+# Shared server vars — used by site.yml (Docker + SOPS provisioning).
+# Copy to vars/server.yml (git-ignored) and fill in the age private key.
 #
-#   cp vars/arcane.example.yml vars/arcane.yml
-
-# Generate with: openssl rand -hex 32
-arcane_encryption_key: "<openssl rand -hex 32>"
-arcane_jwt_secret: "<openssl rand -hex 32>"
-arcane_puid: 1000
-arcane_pgid: 1000
+#   cp vars/server.example.yml vars/server.yml
 
 # Age private key for SOPS secret decryption on this server.
 # Generate locally: age-keygen  (install: brew install age)

@@ -10,8 +10,8 @@
 
 ```bash
 cd infrastructure/ansible
-cp vars/arcane.example.yml vars/server.yml
-# Edit vars/server.yml — generate each secret with: openssl rand -hex 32
+cp vars/arcane.example.yml vars/arcane.yml
+# Edit vars/arcane.yml — generate each secret with: openssl rand -hex 32
 ```
 
 Key fields:
@@ -23,24 +23,20 @@ Key fields:
 | `arcane_puid` / `arcane_pgid` | UID/GID for the Arcane container (default: 1000) |
 | `age_private_key` | Age private key for SOPS decryption (see [SOPS Setup](#3-sops-setup)) |
 
-> `vars/server.yml` is gitignored — never committed.
+> `vars/arcane.yml` is gitignored — never committed.
 
 ---
 
 ## 2. Run the Playbook
 
 ```bash
-ansible-playbook -i inventory/hosts site.yml
+ansible-playbook -i inventory/hosts arcane.yml
 ```
-
-This installs Docker, configures SOPS, and deploys Arcane. The playbook reads `orchestrator: arcane` from `vars/server.yml` and skips all Komodo plays automatically.
 
 **Targeted re-runs:**
 
 | Command | What it runs |
 |---|---|
-| `--tags docker` | Reinstall Docker |
-| `--tags sops` | Update SOPS / age key |
 | `--tags arcane` | Redeploy Arcane only |
 
 ---

@@ -1,0 +1,71 @@
+---
+# Deploy Komodo orchestrator (Core + MongoDB + Periphery).
+# Prerequisites: run site.yml first (Docker + SOPS).
+#
+# Setup:
+#   cp vars/komodo.example.yml vars/komodo.yml
+#   # Fill in secrets: openssl rand -hex 32
+#   ansible-playbook -i inventory/hosts komodo.yml
+#
+# Targeted re-runs:
+#   --tags komodo          Redeploy Komodo Core + MongoDB
+#   --tags periphery       Rerun Periphery onboarding
+#   --tags resource-sync   Rerun Resource Sync bootstrap
+#
+# Re-run Periphery with a known onboarding key (skips the pause):
+#   ansible-playbook -i inventory/hosts komodo.yml --tags periphery \
+#     --extra-vars "onboarding_key=O-your-key"
+
+- name: Deploy Komodo
+  hosts: servers
+  become: true
+  vars_files:
+    - vars/komodo.yml
+  tasks:
+    - ansible.builtin.import_tasks: tasks/komodo.yml
+      tags: komodo
+
+# Pause on localhost to collect the Periphery onboarding key
+- name: Collect Komodo onboarding key
+  hosts: localhost
+  gather_facts: false
+  tags: periphery
+  tasks:
+    - name: Prompt for Komodo onboarding key
+      ansible.builtin.pause:
+        prompt: |
+
+          Komodo is running at http://{{ groups['servers'][0] }}:9120
+
+          Steps:
+            1. Open the URL above in your browser
+            2. Register as the first user (they receive admin rights automatically)
+            3. Go to Settings → Onboarding Keys
+            4. Create a new key — it will start with O-...
+            5. Copy it immediately (shown only once)
+
+          Paste the onboarding key here and press Enter
+      register: komodo_onboarding_key
+      when: onboarding_key is not defined
+
+# Install Periphery on the server
+- name: Install Periphery
+  hosts: servers
+  become: true
+  tags: periphery
+  vars_files:
+    - vars/komodo.yml
+  tasks:
+    - ansible.builtin.import_tasks: tasks/periphery.yml
+      vars:
+        onboarding_key: "{{ onboarding_key | default(hostvars['localhost']['komodo_onboarding_key']['user_input']) }}"
+
+# Bootstrap Komodo Resource Sync for the instance repo
+- name: Bootstrap Komodo Resource Sync
+  hosts: servers
+  become: true
+  tags: resource-sync
+  vars_files:
+    - vars/komodo.yml
+  tasks:
+    - ansible.builtin.import_tasks: tasks/resource-sync.yml

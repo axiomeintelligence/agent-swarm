@@ -1,10 +1,8 @@
 # Komodo orchestrator vars.
-# Copy to vars/server.yml (git-ignored) and fill in real values before running.
+# Copy to vars/komodo.yml (git-ignored) and fill in real values before running.
 # Generate secrets with: openssl rand -hex 32
 #
-#   cp vars/komodo.example.yml vars/server.yml
-
-orchestrator: komodo
+#   cp vars/komodo.example.yml vars/komodo.yml
 
 # Generate with: openssl rand -hex 32
 komodo_database_password: "<openssl rand -hex 32>"

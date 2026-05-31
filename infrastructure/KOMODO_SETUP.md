@@ -10,8 +10,8 @@
 
 ```bash
 cd infrastructure/ansible
-cp vars/komodo.example.yml vars/server.yml
-# Edit vars/server.yml — generate each secret with: openssl rand -hex 32
+cp vars/komodo.example.yml vars/komodo.yml
+# Edit vars/komodo.yml — generate each secret with: openssl rand -hex 32
 ```
 
 Key fields:
@@ -26,17 +26,17 @@ Key fields:
 | `komodo_github_pat` | GitHub PAT for private repo access |
 | `age_private_key` | Age private key for SOPS decryption (see [SOPS Setup](#4-sops-setup)) |
 
-> `vars/server.yml` is gitignored — never committed.
+> `vars/komodo.yml` is gitignored — never committed.
 
 ---
 
 ## 2. Run the Playbook
 
 ```bash
-ansible-playbook -i inventory/hosts site.yml
+ansible-playbook -i inventory/hosts komodo.yml
 ```
 
-This installs Docker, configures SOPS, deploys Komodo (Core + MongoDB), pauses for the Periphery onboarding key, and installs Periphery. The playbook reads `orchestrator: komodo` from `vars/server.yml` and skips all Arcane plays automatically.
+This deploys Komodo (Core + MongoDB), pauses for the Periphery onboarding key, and installs Periphery.
 
 The playbook will **pause** mid-run:
 

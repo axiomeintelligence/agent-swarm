@@ -141,7 +141,7 @@ Once you have successfully connected and see the shell prompt, type `exit`. Ansi
 
 ---
 
-### 6. Ansible Prerequisites
+### 6. Run Ansible — Server Provisioning
 
 Install Ansible locally if you haven't already:
 
@@ -149,7 +149,7 @@ Install Ansible locally if you haven't already:
 pip install ansible
 ```
 
-Copy and fill the inventory file:
+**Step 1 — Copy and fill inventory:**
 
 ```bash
 cd infrastructure/ansible
@@ -158,13 +158,26 @@ cp inventory/hosts.example inventory/hosts
 # Example: hz-agents-0 ansible_user=cloud_user
 ```
 
-> `inventory/hosts` is gitignored — never committed.
+**Step 2 — Copy and fill server vars:**
+
+```bash
+cp vars/server.example.yml vars/server.yml
+# Edit vars/server.yml — add your age private key for SOPS (see orchestrator guide)
+```
+
+**Step 3 — Run the provisioning playbook:**
+
+```bash
+ansible-playbook -i inventory/hosts site.yml
+```
+
+This installs Docker CE and configures SOPS on the server. No orchestrator is deployed yet.
+
+> `inventory/hosts` and `vars/server.yml` are gitignored — never committed.
 
 ---
 
 ### 7. Next Steps — Choose Your Orchestrator
 
-Follow the guide for your chosen orchestrator:
-
-- **[Arcane Setup](ARCANE_SETUP.md)** — lightweight single-container orchestrator (recommended)
+- **[Arcane Setup](ARCANE_SETUP.md)** — lightweight single-container orchestrator *(recommended)*
 - **[Komodo Setup](KOMODO_SETUP.md)** — full-featured orchestrator with MongoDB and GitOps sync
