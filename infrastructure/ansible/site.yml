@@ -34,6 +34,7 @@
 
           Paste the onboarding key here and press Enter
       register: komodo_onboarding_key
+      when: onboarding_key is not defined
 
 # Play 3: Install Periphery on the server using the onboarding key from Play 2
 - name: Install Periphery
@@ -43,4 +44,4 @@
   tasks:
     - ansible.builtin.import_tasks: tasks/periphery.yml
       vars:
-        onboarding_key: "{{ hostvars['localhost']['komodo_onboarding_key']['user_input'] }}"
+        onboarding_key: "{{ onboarding_key | default(hostvars['localhost']['komodo_onboarding_key']['user_input']) }}"
