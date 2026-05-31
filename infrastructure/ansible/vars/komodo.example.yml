@@ -23,18 +23,3 @@ komodo_instance_repo: "<your-org>/<your-instance-repo>"
 komodo_instance_branch: "main"
 komodo_resource_path: "agent-stacks/komodo.toml"
 komodo_git_account: "{{ komodo_github_username }}"
-
-# Age private key for SOPS secret decryption on this server.
-# Generate locally: age-keygen  (install: brew install age)
-#
-# The public key printed by age-keygen goes into the instance repo's .sops.yaml
-# under creation_rules for this server's stacks. Keep only the PRIVATE key here.
-#
-# Example output from age-keygen:
-#   # created: 2026-05-29T00:00:00Z
-#   # public key: age1xxxx...
-#   AGE-SECRET-KEY-1yyyy...
-age_private_key: |
-  # created: <timestamp>
-  # public key: age1<your-public-key-here>
-  AGE-SECRET-KEY-1<your-private-key-here>

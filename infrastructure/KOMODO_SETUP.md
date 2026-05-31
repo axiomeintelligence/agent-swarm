@@ -24,7 +24,8 @@ Key fields:
 | `komodo_admin_password` | Initial admin password |
 | `komodo_github_username` | GitHub username for private repo access |
 | `komodo_github_pat` | GitHub PAT for private repo access |
-| `age_private_key` | Age private key for SOPS decryption (see [SOPS Setup](#4-sops-setup)) |
+
+> The age private key for SOPS decryption lives in `vars/server.yml`, not here — see [SOPS Setup](#4-sops-setup).
 
 > `vars/komodo.yml` is gitignored — never committed.
 

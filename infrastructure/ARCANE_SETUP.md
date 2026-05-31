@@ -21,7 +21,8 @@ Key fields:
 | `arcane_encryption_key` | 32-byte hex key (`openssl rand -hex 32`) |
 | `arcane_jwt_secret` | JWT signing secret (`openssl rand -hex 32`) |
 | `arcane_puid` / `arcane_pgid` | UID/GID for the Arcane container (default: 1000) |
-| `age_private_key` | Age private key for SOPS decryption (see [SOPS Setup](#3-sops-setup)) |
+
+> The age private key for SOPS decryption lives in `vars/server.yml`, not here — see [SOPS Setup](#4-sops-setup).
 
 > `vars/arcane.yml` is gitignored — never committed.
 
