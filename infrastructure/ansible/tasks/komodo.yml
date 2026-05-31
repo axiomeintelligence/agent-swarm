@@ -100,7 +100,7 @@
     state: stopped
     enabled: false
   ignore_errors: true
-  tags: teardown
+  tags: [teardown, never]
 
 - name: "[teardown] Remove Periphery binary and service"
   ansible.builtin.file:
@@ -109,12 +109,12 @@
   loop:
     - /usr/local/bin/periphery
     - /etc/systemd/system/periphery.service
-  tags: teardown
+  tags: [teardown, never]
 
 - name: "[teardown] Reload systemd after removing Periphery"
   ansible.builtin.systemd:
     daemon_reload: true
-  tags: teardown
+  tags: [teardown, never]
 
 - name: "[teardown] Stop and remove Komodo stack"
   ansible.builtin.command:
@@ -123,7 +123,7 @@
   become_user: cloud_user
   ignore_errors: true
   changed_when: true
-  tags: teardown
+  tags: [teardown, never]
 
 - name: "[teardown] Remove Komodo directories"
   ansible.builtin.file:
@@ -132,7 +132,7 @@
   loop:
     - /opt/komodo
     - /etc/komodo
-  tags: teardown
+  tags: [teardown, never]
 
 - name: "[teardown] Remove Komodo iptables rule"
   ansible.builtin.iptables:
@@ -142,10 +142,10 @@
     destination_port: "9120"
     jump: ACCEPT
     state: absent
-  tags: teardown
+  tags: [teardown, never]
 
 - name: "[teardown] Persist iptables after removing Komodo rule"
   ansible.builtin.command:
     cmd: netfilter-persistent save
   changed_when: true
-  tags: teardown
+  tags: [teardown, never]

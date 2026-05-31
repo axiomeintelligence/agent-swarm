@@ -72,13 +72,13 @@
   become_user: cloud_user
   ignore_errors: true
   changed_when: true
-  tags: teardown
+  tags: [teardown, never]
 
 - name: "[teardown] Remove Arcane directory"
   ansible.builtin.file:
     path: /opt/arcane
     state: absent
-  tags: teardown
+  tags: [teardown, never]
 
 - name: "[teardown] Remove Arcane iptables rule"
   ansible.builtin.iptables:
@@ -88,10 +88,10 @@
     destination_port: "3552"
     jump: ACCEPT
     state: absent
-  tags: teardown
+  tags: [teardown, never]
 
 - name: "[teardown] Persist iptables after removing Arcane rule"
   ansible.builtin.command:
     cmd: netfilter-persistent save
   changed_when: true
-  tags: teardown
+  tags: [teardown, never]
