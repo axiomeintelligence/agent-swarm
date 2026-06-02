@@ -1,9 +1,11 @@
 ---
 # Bootstrap a Komodo Resource Sync pointing at the instance repo.
 # Idempotent: checks if the sync exists before creating it.
+# Also registers the GitHub git provider account if komodo_github_username is set.
 # Requires vars: komodo_admin_username, komodo_admin_password, komodo_resource_sync_name,
 #                komodo_instance_repo, komodo_instance_branch, komodo_resource_path,
 #                komodo_git_account (optional, for private repos)
+#                komodo_github_username, komodo_github_pat (optional, for private repos)
 
 - name: Authenticate with Komodo to get JWT
   ansible.builtin.uri:
@@ -21,6 +23,33 @@
   ansible.builtin.set_fact:
     komodo_jwt: "{{ komodo_auth.json.data.jwt }}"
   no_log: true
+
+# Register GitHub git provider account so Komodo can pull private repos.
+# Komodo's CreateGitProviderAccount is idempotent — safe to re-run.
+- name: Register GitHub git provider account
+  ansible.builtin.uri:
+    url: "http://localhost:9120/write/CreateGitProviderAccount"
+    method: POST
+    body_format: json
+    body:
+      domain: "github.com"
+      username: "{{ komodo_github_username }}"
+      token: "{{ komodo_github_pat }}"
+      https: true
+    headers:
+      Authorization: "{{ komodo_jwt }}"
+    status_code: [200, 400]
+  register: komodo_git_provider_result
+  no_log: true
+  when: komodo_github_username is defined and komodo_github_pat is defined
+
+# Komodo returns 400 if the account already exists — that's fine.
+- name: Check git provider registration result
+  ansible.builtin.debug:
+    msg: "Git provider account already exists (skipping)"
+  when:
+    - komodo_git_provider_result is not skipped
+    - komodo_git_provider_result.status == 400
 
 - name: Check if Resource Sync already exists
   ansible.builtin.uri:
