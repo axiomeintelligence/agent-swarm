@@ -28,16 +28,6 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
 
-# Cloudflare Tunnel CLI (cloudflared) via official Cloudflare apt repo
-# Uses the noble (24.04) distribution — latest supported by Cloudflare's repo
-RUN curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg \
-      | tee /usr/share/keyrings/cloudflare-main.gpg >/dev/null \
-    && echo 'deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflared noble main' \
-      | tee /etc/apt/sources.list.d/cloudflared.list \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends cloudflared \
-    && rm -rf /var/lib/apt/lists/*
-
 # Claude Code CLI
 RUN npm install -g @anthropic-ai/claude-code
 

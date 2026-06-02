@@ -98,15 +98,7 @@ echo "[devbot] Starting claudecodeui on port 3001 ..."
 cd /opt/claudecodeui
 npm start &
 
-# ── 5. Start Cloudflare Tunnel (if token provided) ────────────────────────
-if [ -n "${CLOUDFLARE_TUNNEL_TOKEN:-}" ]; then
-  echo "[devbot] Starting Cloudflare Tunnel ..."
-  cloudflared tunnel run --token "${CLOUDFLARE_TUNNEL_TOKEN}" &
-else
-  echo "[devbot] CLOUDFLARE_TUNNEL_TOKEN not set — tunnel disabled."
-fi
-
-# ── 6. Idle ───────────────────────────────────────────────────────────────
+# ── 5. Idle ───────────────────────────────────────────────────────────────
 echo "[devbot] Ready. Attach via: docker exec -it ${HOSTNAME} bash"
 echo "[devbot] Web UI: http://localhost:${HOST_PORT:-3001}"
 tail -f /dev/null
