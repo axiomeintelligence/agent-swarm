@@ -8,8 +8,9 @@
 #   ansible-playbook -i inventory/hosts arcane.yml
 #
 # Targeted re-runs:
-#   --tags arcane      Redeploy Arcane only
-#   --tags teardown    Remove Arcane (stops containers, deletes /opt/arcane, removes firewall rule)
+#   --tags arcane        Redeploy Arcane only
+#   --tags agent-swarm   Open Hermes + DevBot ports only
+#   --tags teardown      Remove Arcane + agent-swarm ports (stops containers, deletes /opt/arcane, removes firewall rules)
 
 - name: Deploy Arcane
   hosts: servers
@@ -19,3 +20,5 @@
   tasks:
     - ansible.builtin.import_tasks: tasks/arcane.yml
       tags: arcane
+    - ansible.builtin.import_tasks: tasks/agent-swarm.yml
+      tags: agent-swarm

@@ -1,0 +1,73 @@
+- name: Allow Hermes gateway API on Tailscale interface
+  ansible.builtin.iptables:
+    chain: INPUT
+    in_interface: tailscale0
+    protocol: tcp
+    destination_port: "8642"
+    jump: ACCEPT
+    comment: Hermes gateway API — Tailscale only
+  tags: agent-swarm
+
+- name: Allow Hermes dashboard on Tailscale interface
+  ansible.builtin.iptables:
+    chain: INPUT
+    in_interface: tailscale0
+    protocol: tcp
+    destination_port: "9119"
+    jump: ACCEPT
+    comment: Hermes dashboard (HERMES_DASHBOARD=1 only) — Tailscale only
+  tags: agent-swarm
+
+- name: Allow DevBot web UI on Tailscale interface
+  ansible.builtin.iptables:
+    chain: INPUT
+    in_interface: tailscale0
+    protocol: tcp
+    destination_port: "3001"
+    jump: ACCEPT
+    comment: DevBot web UI — Tailscale only
+  tags: agent-swarm
+
+- name: Persist iptables rules (agent-swarm ports)
+  ansible.builtin.command:
+    cmd: netfilter-persistent save
+  changed_when: true
+  tags: agent-swarm
+
+# --- Teardown (--tags teardown) ---
+
+- name: "[teardown] Remove Hermes gateway API iptables rule"
+  ansible.builtin.iptables:
+    chain: INPUT
+    in_interface: tailscale0
+    protocol: tcp
+    destination_port: "8642"
+    jump: ACCEPT
+    state: absent
+  tags: [teardown, never]
+
+- name: "[teardown] Remove Hermes dashboard iptables rule"
+  ansible.builtin.iptables:
+    chain: INPUT
+    in_interface: tailscale0
+    protocol: tcp
+    destination_port: "9119"
+    jump: ACCEPT
+    state: absent
+  tags: [teardown, never]
+
+- name: "[teardown] Remove DevBot web UI iptables rule"
+  ansible.builtin.iptables:
+    chain: INPUT
+    in_interface: tailscale0
+    protocol: tcp
+    destination_port: "3001"
+    jump: ACCEPT
+    state: absent
+  tags: [teardown, never]
+
+- name: "[teardown] Persist iptables after removing agent-swarm rules"
+  ansible.builtin.command:
+    cmd: netfilter-persistent save
+  changed_when: true
+  tags: [teardown, never]

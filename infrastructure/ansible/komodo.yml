@@ -11,7 +11,8 @@
 #   --tags komodo          Redeploy Komodo Core + MongoDB
 #   --tags periphery       Rerun Periphery onboarding
 #   --tags resource-sync   Rerun Resource Sync bootstrap
-#   --tags teardown        Remove Komodo (stops containers, removes Periphery, deletes dirs, removes firewall rule)
+#   --tags agent-swarm     Open Hermes + DevBot ports only
+#   --tags teardown        Remove Komodo + agent-swarm ports (stops containers, removes Periphery, deletes dirs, removes firewall rules)
 #
 # Re-run Periphery with a known onboarding key (skips the pause):
 #   ansible-playbook -i inventory/hosts komodo.yml --tags periphery \
@@ -25,6 +26,8 @@
   tasks:
     - ansible.builtin.import_tasks: tasks/komodo.yml
       tags: komodo
+    - ansible.builtin.import_tasks: tasks/agent-swarm.yml
+      tags: agent-swarm
 
 # Pause on localhost to collect the Periphery onboarding key
 - name: Collect Komodo onboarding key
