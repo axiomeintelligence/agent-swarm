@@ -1,0 +1,7 @@
+# Arcane orchestrator vars — used by arcane.yml.
+# Generate secrets with: openssl rand -hex 32
+
+arcane_encryption_key: "<openssl rand -hex 32>"
+arcane_jwt_secret: "<openssl rand -hex 32>"
+# arcane_puid: 1000
+# arcane_pgid: 1000

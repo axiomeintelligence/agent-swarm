@@ -1,8 +1,5 @@
 # Shared server vars — used by site.yml (Docker + SOPS provisioning).
-# Copy to vars/server.yml (git-ignored) and fill in values.
 #
-#   cp vars/server.example.yml vars/server.yml
-
 # Age private key for SOPS secret decryption on this server.
 # OPTIONAL — leave blank or omit entirely to skip SOPS/age setup.
 #
@@ -16,5 +13,5 @@
 #
 # age_private_key: |
 #   # created: <timestamp>
-#   # public key: age1<your-public-key-here>
-#   AGE-SECRET-KEY-1<your-private-key-here>
+#   # public key: age1<your-public-key>
+#   AGE-SECRET-KEY-1<your-private-key>

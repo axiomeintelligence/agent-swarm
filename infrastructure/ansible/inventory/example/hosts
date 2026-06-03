@@ -1,0 +1,8 @@
+# Copy this directory to inventory/<your-deployment-name>/ (git-ignored) and fill in real values.
+# The hostname must be the server's Tailscale MagicDNS name (from: tailscale status).
+#
+#   cp -r inventory/example inventory/<your-deployment-name>
+#   # Edit inventory/<your-deployment-name>/hosts and group_vars/servers.yml
+
+[servers]
+<server-tailscale-hostname> ansible_user=cloud_user

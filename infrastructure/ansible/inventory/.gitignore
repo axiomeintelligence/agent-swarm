@@ -1,3 +1,4 @@
 *
 !.gitignore
-!hosts.example
+!example/
+!example/**

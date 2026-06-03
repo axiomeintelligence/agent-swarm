@@ -3,14 +3,12 @@
 # Installs Docker CE and configures SOPS/age for secret decryption.
 #
 # After this completes, run your chosen orchestrator playbook:
-#   Arcane:  ansible-playbook -i inventory/hosts arcane.yml  (recommended)
-#   Komodo:  ansible-playbook -i inventory/hosts komodo.yml
+#   Arcane:  ansible-playbook -i inventory/<deployment> arcane.yml  (recommended)
+#   Komodo:  ansible-playbook -i inventory/<deployment> komodo.yml
 
 - name: Provision server
   hosts: servers
   become: true
-  vars_files:
-    - vars/server.yml
   tasks:
     - ansible.builtin.import_tasks: tasks/docker.yml
       tags: docker

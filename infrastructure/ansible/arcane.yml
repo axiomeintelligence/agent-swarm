@@ -3,9 +3,9 @@
 # Prerequisites: run site.yml first (Docker + SOPS).
 #
 # Setup:
-#   cp vars/arcane.example.yml vars/arcane.yml
-#   # Fill in secrets: openssl rand -hex 32
-#   ansible-playbook -i inventory/hosts arcane.yml
+#   cp -r inventory/example inventory/<deployment>
+#   # Edit inventory/<deployment>/hosts and group_vars/servers.yml
+#   ansible-playbook -i inventory/<deployment> arcane.yml
 #
 # Targeted re-runs:
 #   --tags arcane        Redeploy Arcane only
@@ -15,8 +15,6 @@
 - name: Deploy Arcane
   hosts: servers
   become: true
-  vars_files:
-    - vars/arcane.yml
   tasks:
     - ansible.builtin.import_tasks: tasks/arcane.yml
       tags: arcane

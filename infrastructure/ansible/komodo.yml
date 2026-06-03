@@ -3,9 +3,9 @@
 # Prerequisites: run site.yml first (Docker + SOPS).
 #
 # Setup:
-#   cp vars/komodo.example.yml vars/komodo.yml
-#   # Fill in secrets: openssl rand -hex 32
-#   ansible-playbook -i inventory/hosts komodo.yml
+#   cp -r inventory/example inventory/<deployment>
+#   # Edit inventory/<deployment>/hosts and group_vars/servers.yml
+#   ansible-playbook -i inventory/<deployment> komodo.yml
 #
 # Targeted re-runs:
 #   --tags komodo          Redeploy Komodo Core + MongoDB
@@ -15,14 +15,12 @@
 #   --tags teardown        Remove Komodo + agent-swarm ports (stops containers, removes Periphery, deletes dirs, removes firewall rules)
 #
 # Re-run Periphery with a known onboarding key (skips the pause):
-#   ansible-playbook -i inventory/hosts komodo.yml --tags periphery \
+#   ansible-playbook -i inventory/<deployment> komodo.yml --tags periphery \
 #     --extra-vars "onboarding_key=O-your-key"
 
 - name: Deploy Komodo
   hosts: servers
   become: true
-  vars_files:
-    - vars/komodo.yml
   tasks:
     - ansible.builtin.import_tasks: tasks/komodo.yml
       tags: komodo
@@ -57,8 +55,6 @@
   hosts: servers
   become: true
   tags: periphery
-  vars_files:
-    - vars/komodo.yml
   tasks:
     - ansible.builtin.import_tasks: tasks/periphery.yml
       vars:
@@ -69,7 +65,5 @@
   hosts: servers
   become: true
   tags: resource-sync
-  vars_files:
-    - vars/komodo.yml
   tasks:
     - ansible.builtin.import_tasks: tasks/resource-sync.yml
