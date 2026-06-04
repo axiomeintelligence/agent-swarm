@@ -66,7 +66,7 @@ services:
     networks:
       - assistant-net
     environment:
-      - OPENAI_API_KEY=${GBRAIN_OPENAI_API_KEY:-${OPENAI_API_KEY:-}}
+      - OPENAI_API_KEY=${GBRAIN_OPENAI_API_KEY:-}
 
   gdrive-mcp:
     image: ${GDRIVE_MCP_IMAGE:-ghcr.io/axiomeintelligence/gdrive-mcp:latest}
