@@ -25,13 +25,14 @@
     state: present
     filename: docker
 
-- name: Install Docker CE and compose plugin
+- name: Install Docker CE, compose plugin, and jq
   ansible.builtin.apt:
     name:
       - docker-ce
       - docker-ce-cli
       - containerd.io
       - docker-compose-plugin
+      - jq
     update_cache: true
     state: present
 
