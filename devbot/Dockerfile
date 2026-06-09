@@ -2,7 +2,9 @@ FROM ubuntu:26.04
 
 ENV DEBIAN_FRONTEND=noninteractive \
     TZ=UTC \
-    NODE_OPTIONS=--max-old-space-size=4096
+    NODE_OPTIONS=--max-old-space-size=4096 \
+    PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 \
+    PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium
 
 # System deps
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -28,8 +30,8 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
 
-# Claude Code CLI
-RUN npm install -g @anthropic-ai/claude-code
+# Claude Code CLI + Playwright (uses system Chromium via PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH)
+RUN npm install -g @anthropic-ai/claude-code playwright
 
 # claudecodeui — public repo, no auth needed
 RUN git clone --depth 1 https://github.com/axiomeintelligence/claudecodeui /opt/claudecodeui \
