@@ -29,7 +29,7 @@ cat >> "${CONFIG}" << 'EOF'
 # ── MCP servers injected by init-mcp.sh on first boot ────────────────────────
 mcp_servers:
   gbrain:
-    url: "http://gbrain:3131"
+    url: "http://gbrain:3131/mcp"
     timeout: 120
     connect_timeout: 30
 
