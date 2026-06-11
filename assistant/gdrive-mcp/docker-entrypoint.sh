@@ -11,7 +11,7 @@ set -e
 # pointing to a file on disk, so we write the JSON to a temp file and export the path.
 
 if [ -n "${GOOGLE_SERVICE_ACCOUNT_JSON}" ]; then
-    echo "${GOOGLE_SERVICE_ACCOUNT_JSON}" > /tmp/service-account.json
+    printf '%s' "${GOOGLE_SERVICE_ACCOUNT_JSON}" > /tmp/service-account.json
     export GOOGLE_APPLICATION_CREDENTIALS=/tmp/service-account.json
 else
     echo "[gdrive-mcp] WARNING: GOOGLE_SERVICE_ACCOUNT_JSON not set — Google Drive operations will fail" >&2
