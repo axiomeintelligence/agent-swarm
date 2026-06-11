@@ -4,6 +4,35 @@ Breaking changes and migration steps, newest first.
 
 ---
 
+## 2026-06-11 — MCP URL fixes (gbrain, devbot-mcp), gdrive-mcp service account
+
+### What changed
+
+- **`assistant/hermes/scripts/init-mcp.sh`** — fixed gbrain registered URL from `http://gbrain:3131` to `http://gbrain:3131/mcp`. Without this Hermes cannot connect to G-Brain.
+- **`assistant/gdrive-mcp/Dockerfile`** — replaced deprecated `@modelcontextprotocol/server-gdrive` (OAuth-only) with `@piotr-agier/google-drive-mcp` which supports service account auth via `GOOGLE_APPLICATION_CREDENTIALS`.
+- **`assistant/gdrive-mcp/docker-entrypoint.sh`** — switched from `echo` to `printf` when writing service account JSON to avoid newline expansion corrupting the file.
+
+### Migration steps
+
+**Existing deployments** — the sentinel files prevent init scripts from re-running. Apply manually:
+
+```bash
+# Fix gbrain URL in live config
+docker exec <assistant-container> sed -i 's|url: http://gbrain:3131$|url: http://gbrain:3131/mcp|' /opt/data/config.yaml
+
+# Rebuild gdrive-mcp with new server
+git pull
+docker compose build gdrive-mcp
+docker compose up -d gdrive-mcp
+
+# Restart hermes to reconnect
+docker compose restart hermes
+```
+
+**New deployments** — no action needed, all fixes are included.
+
+---
+
 ## 2026-06-11 — gateway run mode, remove hermes-webui
 
 ### What changed
