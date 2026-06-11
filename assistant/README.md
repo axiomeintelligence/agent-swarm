@@ -154,8 +154,32 @@ docker compose up -d
 - Embeddings are disabled by default (`--no-embedding`). Set `OPENAI_API_KEY` and remove `--no-embedding` in the entrypoint to enable.
 - HTTP server requires `--bind 0.0.0.0` (default is loopback — unreachable from other containers).
 
-## Google Drive notes
+## Google Drive setup
 
-- `@modelcontextprotocol/server-gdrive` is stdio-only; `supergateway` bridges it to SSE.
-- The service account must have the Drive API enabled and be granted access to specific folders (or the entire Drive).
-- Without `GOOGLE_SERVICE_ACCOUNT_JSON`, the container starts but Drive tool calls return auth errors.
+`@modelcontextprotocol/server-gdrive` is stdio-only; `supergateway` bridges it to SSE. Without `GOOGLE_SERVICE_ACCOUNT_JSON`, the container starts but Drive tool calls return auth errors.
+
+### 1. Enable APIs
+
+Enable both APIs in your Google Cloud project:
+
+- [Google Drive API](https://console.cloud.google.com/marketplace/product/google/drive.googleapis.com)
+- [Google Docs API](https://console.cloud.google.com/apis/api/docs.googleapis.com)
+
+### 2. Create a service account
+
+> **If your org blocks service account key creation**, a Security Admin must first disable the policy:
+> 1. Grant yourself the **Security Admin** role at [IAM](https://console.cloud.google.com/iam-admin/iam)
+> 2. Disable the [Service Account Key Creation org policy](https://console.cloud.google.com/iam-admin/orgpolicies/iam-disableServiceAccountKeyCreation)
+
+Create the service account at [IAM → Service Accounts](https://console.cloud.google.com/iam-admin/serviceaccounts):
+
+1. Click **Create Service Account** — name it (e.g. `gdrive-mcp`)
+2. Skip optional role grants — access is controlled via Drive sharing, not IAM
+3. On the service account page, go to **Keys → Add Key → Create new key → JSON**
+4. Download the JSON file — paste its full contents (single line) into `GOOGLE_SERVICE_ACCOUNT_JSON`
+
+### 3. Grant Drive access
+
+Share any Google Drive folder or Shared Drive with the service account's email address (shown on the service account page), granting it **Content Manager** or higher.
+
+The service account only has access to folders explicitly shared with it.
