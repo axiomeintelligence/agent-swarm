@@ -5,10 +5,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Install the Google Drive MCP server and supergateway bridge globally.
-# @modelcontextprotocol/server-gdrive is stdio-only; supergateway wraps it
-# in an HTTP/SSE transport so Hermes can connect via url:.
+# @piotr-agier/google-drive-mcp supports service account auth via
+# GOOGLE_APPLICATION_CREDENTIALS (unlike the deprecated @modelcontextprotocol/server-gdrive
+# which only supported interactive OAuth).
 RUN npm install -g \
-    @modelcontextprotocol/server-gdrive \
+    @piotr-agier/google-drive-mcp \
     supergateway
 
 # supergateway SSE bridge listens on port 3000
