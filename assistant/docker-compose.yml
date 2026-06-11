@@ -8,8 +8,7 @@ services:
     container_name: ${CONTAINER_NAME:-assistant}
     hostname: ${CONTAINER_NAME:-assistant}
     restart: unless-stopped
-    tty: true
-    stdin_open: true
+    command: hermes gateway run
     depends_on:
       gbrain:
         condition: service_healthy
@@ -20,8 +19,6 @@ services:
       - "${DASHBOARD_PORT:-9119}:9119"    # dashboard UI (requires HERMES_DASHBOARD=1)
     volumes:
       - ./data/${CONTAINER_NAME:-assistant}/hermes:/opt/data
-      - hermes-home:/home/hermes/.hermes
-      - hermes-agent-src:/opt/hermes
     networks:
       - assistant-net
     environment:
@@ -49,29 +46,6 @@ services:
       - EMAIL_ALLOWED_USERS=${EMAIL_ALLOWED_USERS:-}
       - EMAIL_POLL_INTERVAL=${EMAIL_POLL_INTERVAL:-15}
       - TZ=${TZ:-UTC}
-
-  hermes-webui:
-    image: ${HERMES_WEBUI_IMAGE:-ghcr.io/nesquena/hermes-webui:latest}
-    container_name: ${CONTAINER_NAME:-assistant}-webui
-    hostname: hermes-webui
-    restart: unless-stopped
-    depends_on:
-      - hermes
-    ports:
-      - "${WEBUI_PORT:-8787}:8787"
-    volumes:
-      - hermes-home:/home/hermeswebui/.hermes
-      - hermes-agent-src:/home/hermeswebui/.hermes/hermes-agent:ro
-    networks:
-      - assistant-net
-    environment:
-      - HERMES_WEBUI_HOST=0.0.0.0
-      - HERMES_WEBUI_PORT=8787
-      - HERMES_WEBUI_STATE_DIR=/home/hermeswebui/.hermes/webui
-      - HERMES_WEBUI_PASSWORD=${HERMES_WEBUI_PASSWORD:-}
-      - HERMES_WEBUI_ONBOARDING_OPEN=${HERMES_WEBUI_ONBOARDING_OPEN:-1}
-      - WANTED_UID=${HERMES_UID:-1000}
-      - WANTED_GID=${HERMES_GID:-1000}
 
   gbrain:
     image: ${GBRAIN_IMAGE:-ghcr.io/axiomeintelligence/gbrain:latest}
@@ -116,9 +90,3 @@ services:
 networks:
   assistant-net:
     name: ${CONTAINER_NAME:-assistant}-net
-
-volumes:
-  hermes-home:
-    name: ${CONTAINER_NAME:-assistant}-hermes-home
-  hermes-agent-src:
-    name: ${CONTAINER_NAME:-assistant}-hermes-agent-src

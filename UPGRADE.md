@@ -4,6 +4,35 @@ Breaking changes and migration steps, newest first.
 
 ---
 
+## 2026-06-11 — gateway run mode, remove hermes-webui
+
+### What changed
+
+- **`assistant/docker-compose.yml`** — hermes now runs `hermes gateway run` as its command instead of the interactive TUI. Without this, Hermes starts in TUI mode and never listens for Telegram/Slack/email messages.
+- **`assistant/docker-compose.yml`** — `hermes-webui` service removed. The webui runs its own in-process Hermes instance rather than connecting to the existing container, making it incompatible with this multi-container stack.
+- Removed `tty: true` / `stdin_open: true` (no longer needed — gateway run doesn't require a terminal).
+- Removed `hermes-home` and `hermes-agent-src` volumes (were only needed by hermes-webui).
+
+### Migration steps
+
+```bash
+git pull
+docker compose up -d hermes
+```
+
+If you had hermes-webui running, stop and remove it:
+
+```bash
+docker compose stop hermes-webui
+docker compose rm hermes-webui
+```
+
+### Breaking
+
+**Existing deployments without `command: hermes gateway run`** will have Hermes running in TUI mode — it will appear healthy but never respond to any messages. This is a silent failure. The fix is to pull and restart.
+
+---
+
 ## 2026-06-11 — hermes-webui + TTY fix
 
 ### What changed
