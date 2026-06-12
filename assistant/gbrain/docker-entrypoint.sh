@@ -1,15 +1,18 @@
 #!/bin/sh
 set -e
 
-# Remove stale PGLite postmaster.pid left by a previous killed/OOM-killed container.
-# Postgres writes this file on start and removes it on clean shutdown; a forced kill
-# skips cleanup. Safe to delete on startup because no other gbrain process can be
-# running against the same data directory in this stack.
+# Remove stale PGLite lock files left by a previous killed/OOM-killed container.
+# Postgres writes postmaster.pid on start and removes it on clean shutdown; a forced
+# kill skips cleanup. .gbrain-lock/lock is a gbrain advisory lock with the same
+# lifecycle. Safe to remove on startup because only one container accesses this
+# data directory.
 PGLITE_DIR="${GBRAIN_HOME:-/data}/.gbrain/brain.pglite"
-if [ -f "${PGLITE_DIR}/postmaster.pid" ]; then
-    rm -f "${PGLITE_DIR}/postmaster.pid"
-    echo "[entrypoint] removed stale PGLite lock from ${PGLITE_DIR}/postmaster.pid"
-fi
+for STALE_LOCK in "${PGLITE_DIR}/postmaster.pid" "${PGLITE_DIR}/.gbrain-lock/lock"; do
+    if [ -f "${STALE_LOCK}" ]; then
+        rm -f "${STALE_LOCK}"
+        echo "[entrypoint] removed stale lock: ${STALE_LOCK}"
+    fi
+done
 
 # Auto-initialize G-Brain PGLite database on first run.
 # gbrain init is idempotent: it exits cleanly if already initialized.
