@@ -13,3 +13,4 @@ FROM nousresearch/hermes-agent:latest
 # Using prefix 03- guarantees we run after 01-hermes-setup has seeded
 # config.yaml, so we can safely append to it.
 COPY --chmod=755 scripts/init-mcp.sh /etc/cont-init.d/03-mcp-config
+COPY --chmod=755 scripts/04-gbrain-auth.sh /etc/cont-init.d/04-gbrain-auth

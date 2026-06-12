@@ -4,6 +4,43 @@ Breaking changes and migration steps, newest first.
 
 ---
 
+## 2026-06-12 — G-Brain OAuth token refresh on every Hermes startup
+
+### What changed
+
+- **`assistant/hermes/scripts/04-gbrain-auth.sh`** — new per-boot cont-init.d script that:
+  - Uses `#!/command/with-contenv sh` so `GBRAIN_ADMIN_TOKEN` is available (plain `#!/bin/sh` in s6 cont-init.d does not inherit the Docker container environment)
+  - Registers a confidential OAuth client with G-Brain on first boot (credentials cached to avoid accumulation)
+  - Refreshes the OAuth 2.1 access token on **every** Hermes startup (tokens expire after ~3600s)
+  - Waits up to 30s for G-Brain to be ready before attempting auth (avoids silent failure when G-Brain starts slower than Hermes)
+- **`assistant/hermes/Dockerfile`** — adds the new `04-gbrain-auth.sh` script to the image
+- **`assistant/docker-compose.yml`** — adds `GBRAIN_ADMIN_TOKEN` to hermes env and `GBRAIN_ADMIN_BOOTSTRAP_TOKEN` to gbrain env
+- **`assistant/.env.example`** — documents `GBRAIN_ADMIN_TOKEN`
+
+Without this, Hermes connects to G-Brain anonymously and receives `401 Unauthorized` on every MCP call.
+
+### New environment variable
+
+| Variable | Where to set | Description |
+|----------|-------------|-------------|
+| `GBRAIN_ADMIN_TOKEN` | `.env` | 32+ char token. Same value passed to both `gbrain` (as `GBRAIN_ADMIN_BOOTSTRAP_TOKEN`) and `hermes` (as `GBRAIN_ADMIN_TOKEN`). Generate: `openssl rand -hex 32` |
+
+### Migration steps
+
+**New deployments** — set `GBRAIN_ADMIN_TOKEN` in `.env` before first `docker compose up`. No other action needed.
+
+**Existing deployments** — pull, rebuild, and restart:
+
+```bash
+git pull
+docker compose build hermes
+docker compose up -d hermes gbrain
+```
+
+The script will register a new OAuth client and write a fresh token on the next Hermes startup. Hermes does not need to be fully stopped; a restart is sufficient.
+
+---
+
 ## 2026-06-11 — MCP URL fixes (gbrain, devbot-mcp), gdrive-mcp service account
 
 ### What changed

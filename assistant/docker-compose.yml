@@ -46,6 +46,8 @@ services:
       - EMAIL_ALLOWED_USERS=${EMAIL_ALLOWED_USERS:-}
       - EMAIL_POLL_INTERVAL=${EMAIL_POLL_INTERVAL:-15}
       - TZ=${TZ:-UTC}
+      # ── G-Brain auth ─────────────────────────────────────────────────────────
+      - GBRAIN_ADMIN_TOKEN=${GBRAIN_ADMIN_TOKEN:-}
 
   gbrain:
     image: ${GBRAIN_IMAGE:-ghcr.io/axiomeintelligence/gbrain:latest}
@@ -68,6 +70,7 @@ services:
       - assistant-net
     environment:
       - OPENAI_API_KEY=${GBRAIN_OPENAI_API_KEY:-}
+      - GBRAIN_ADMIN_BOOTSTRAP_TOKEN=${GBRAIN_ADMIN_TOKEN:-}
 
   gdrive-mcp:
     image: ${GDRIVE_MCP_IMAGE:-ghcr.io/axiomeintelligence/gdrive-mcp:latest}
