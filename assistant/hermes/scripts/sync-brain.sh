@@ -12,11 +12,16 @@ if ! git -C "${BRAIN_REPO}" rev-parse HEAD >/dev/null 2>&1; then
 fi
 
 BEFORE=$(git -C "${BRAIN_REPO}" rev-parse HEAD)
-git -C "${BRAIN_REPO}" pull --ff-only 2>/dev/null || true
+if ! git -C "${BRAIN_REPO}" pull --ff-only 2>&1; then
+    echo "[sync-brain] WARNING: git pull failed -- skipping import this cycle" >&2
+    exit 0
+fi
 AFTER=$(git -C "${BRAIN_REPO}" rev-parse HEAD)
 
 if [ "${BEFORE}" != "${AFTER}" ]; then
-    echo "[sync-brain] New commits (${BEFORE%????????}..${AFTER%????????}) -- importing"
+    BEFORE_SHORT=$(printf '%.8s' "${BEFORE}")
+    AFTER_SHORT=$(printf '%.8s' "${AFTER}")
+    echo "[sync-brain] New commits (${BEFORE_SHORT}..${AFTER_SHORT}) -- importing"
     gbrain import "${BRAIN_REPO}" --home "${GBRAIN_HOME}"
 else
     echo "[sync-brain] No new commits at $(date -u +%H:%M:%SZ)"
