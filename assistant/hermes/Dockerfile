@@ -1,16 +1,35 @@
 FROM nousresearch/hermes-agent:latest
 
-# Install init-mcp.sh as a cont-init.d script.
-#
-# The Hermes image uses s6-overlay v3 with the legacy-cont-init compatibility
-# service enabled. Scripts under /etc/cont-init.d/ run in lexicographic order
-# before user services start:
-#   01-hermes-setup       — seeds config.yaml from cli-config.yaml.example
-#   015-supervise-perms   — fixes s6 supervise/ ownership
-#   02-reconcile-profiles — sets up per-profile s6-rc services
-#   03-mcp-config         — injects MCP server registrations (this script)
-#
-# Using prefix 03- guarantees we run after 01-hermes-setup has seeded
-# config.yaml, so we can safely append to it.
-COPY --chmod=755 scripts/init-mcp.sh /etc/cont-init.d/03-mcp-config
-COPY --chmod=755 scripts/04-gbrain-auth.sh /etc/cont-init.d/04-gbrain-auth
+# ── System deps for gbrain + skills hot-reload ────────────────────────────────
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    inotify-tools \
+    git \
+    curl \
+    unzip \
+    && rm -rf /var/lib/apt/lists/*
+
+# ── Bun (required by gbrain) ──────────────────────────────────────────────────
+RUN curl -fsSL https://bun.sh/install | BUN_INSTALL=/usr/local bash
+
+# ── gbrain CLI ────────────────────────────────────────────────────────────────
+ARG GBRAIN_REF=main
+RUN git clone --depth 1 https://github.com/garrytan/gbrain /opt/gbrain-src \
+    && cd /opt/gbrain-src \
+    && bun install \
+    && bun link
+
+ENV GBRAIN_HOME=/opt/gbrain-home
+
+# ── cont-init.d scripts ───────────────────────────────────────────────────────
+# Run in lexicographic order after 01-hermes-setup seeds config.yaml:
+#   03-mcp-config         -- injects MCP server registrations (gbrain stdio + gdrive-mcp sse)
+#   05-start-sync-brain   -- backgrounds periodic mono-repo sync loop
+#   06-start-skills-watch -- backgrounds inotifywait skills hot-reload
+
+COPY --chmod=755 scripts/init-mcp.sh              /etc/cont-init.d/03-mcp-config
+COPY --chmod=755 scripts/05-start-sync-brain.sh   /etc/cont-init.d/05-start-sync-brain
+COPY --chmod=755 scripts/06-start-skills-watch.sh /etc/cont-init.d/06-start-skills-watch
+
+# ── Helper scripts in PATH ────────────────────────────────────────────────────
+COPY --chmod=755 scripts/sync-brain.sh          /usr/local/bin/sync-brain.sh
+COPY --chmod=755 scripts/gbrain-skills-watch.sh /usr/local/bin/gbrain-skills-watch.sh

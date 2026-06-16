@@ -10,8 +10,6 @@ services:
     restart: unless-stopped
     command: hermes gateway run
     depends_on:
-      gbrain:
-        condition: service_healthy
       gdrive-mcp:
         condition: service_started
     ports:
@@ -19,12 +17,15 @@ services:
       - "${DASHBOARD_PORT:-9119}:9119"    # dashboard UI (requires HERMES_DASHBOARD=1)
     volumes:
       - ./data/${CONTAINER_NAME:-assistant}/hermes:/opt/data
+      - ${MONO_REPO_PATH}/brain:/brain-repo:ro
+      - ${MONO_REPO_PATH}/gbrain-skills:/opt/gbrain-home/.gbrain/skills
+      - ${MONO_REPO_PATH}/.gbrain-data:/opt/gbrain-home
     networks:
       - assistant-net
     environment:
       # ── Dashboard ───────────────────────────────────────────────────────────
       - HERMES_DASHBOARD=${HERMES_DASHBOARD:-1}
-      - HERMES_DASHBOARD_INSECURE=${HERMES_DASHBOARD_INSECURE:-1}             # skip OAuth gate — safe on Tailscale-only networks
+      - HERMES_DASHBOARD_INSECURE=${HERMES_DASHBOARD_INSECURE:-1}
       # ── AI provider ──────────────────────────────────────────────────────────
       - AI_PROVIDER=${AI_PROVIDER:-anthropic}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
@@ -46,31 +47,10 @@ services:
       - EMAIL_ALLOWED_USERS=${EMAIL_ALLOWED_USERS:-}
       - EMAIL_POLL_INTERVAL=${EMAIL_POLL_INTERVAL:-15}
       - TZ=${TZ:-UTC}
-      # ── G-Brain auth ─────────────────────────────────────────────────────────
-      - GBRAIN_ADMIN_TOKEN=${GBRAIN_ADMIN_TOKEN:-}
-
-  gbrain:
-    image: ${GBRAIN_IMAGE:-ghcr.io/axiomeintelligence/gbrain:latest}
-    build:
-      context: ./gbrain
-      args:
-        GBRAIN_REF: ${GBRAIN_REF:-main}
-    container_name: ${CONTAINER_NAME:-assistant}-gbrain
-    hostname: gbrain
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:3131/health"]
-      interval: 10s
-      timeout: 5s
-      start_period: 60s
-      retries: 6
-    volumes:
-      - ./data/${CONTAINER_NAME:-assistant}/gbrain:/data
-    networks:
-      - assistant-net
-    environment:
-      - OPENAI_API_KEY=${GBRAIN_OPENAI_API_KEY:-}
-      - GBRAIN_ADMIN_BOOTSTRAP_TOKEN=${GBRAIN_ADMIN_TOKEN:-}
+      # ── G-Brain ──────────────────────────────────────────────────────────────
+      - GBRAIN_HOME=/opt/gbrain-home
+      - BRAIN_SYNC_INTERVAL=${BRAIN_SYNC_INTERVAL:-300}
+      - MONO_REPO_PATH=${MONO_REPO_PATH:-}
 
   gdrive-mcp:
     image: ${GDRIVE_MCP_IMAGE:-ghcr.io/axiomeintelligence/gdrive-mcp:latest}

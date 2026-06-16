@@ -10,7 +10,7 @@
     {
       "id": 16,
       "subject": "Task 2: Create Ansible inventory and vars scaffold",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [
         15
       ],
@@ -19,7 +19,7 @@
     {
       "id": 17,
       "subject": "Task 3: Create tasks/docker.yml",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [
         16
       ],
@@ -28,7 +28,7 @@
     {
       "id": 18,
       "subject": "Task 4: Create tasks/komodo.yml and komodo-compose.env.j2",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [
         17
       ],
@@ -37,7 +37,7 @@
     {
       "id": 19,
       "subject": "Task 5: Create tasks/periphery.yml",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [
         18
       ],
@@ -46,7 +46,7 @@
     {
       "id": 20,
       "subject": "Task 6: Create site.yml",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [
         19
       ],
@@ -55,7 +55,7 @@
     {
       "id": 21,
       "subject": "Task 7: Move and rewrite SERVER_SETUP.md",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [
         20
       ],
