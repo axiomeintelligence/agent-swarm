@@ -4,16 +4,21 @@
 #
 # Prerequisites:
 #   - Server provisioned via site.yml (Docker installed, Tailscale connected)
-#   - assistant/.env created manually on the server at <agent_swarm_path>/assistant/.env
+#   - .env created manually on the server at <compose_project_src>/.env
 #
 # Usage:
 #   ansible-playbook -i inventory/<name> deploy-agent.yml
 #
 # Required vars (define in inventory group_vars/servers/agent_swarm.yml):
-#   agent_swarm_repo  -- git remote URL for this repo
-#   agent_swarm_path  -- absolute path on server to clone/pull agent-swarm into
-#   mono_repo_url     -- git remote URL for the mono-repo
-#   mono_repo_path    -- absolute path on server to clone/pull mono-repo into
+#   agent_swarm_repo     -- git remote URL for the agent-swarm (or derived) repo
+#   agent_swarm_path     -- absolute path on server to clone/pull the repo into
+#   mono_repo_url        -- git remote URL for the mono-repo
+#   mono_repo_path       -- absolute path on server to clone/pull mono-repo into
+#
+# Optional vars:
+#   mono_repo_owner      -- user:group to own mono_repo_path (default: omitted)
+#   compose_project_src  -- full path to the compose project root
+#                           (default: agent_swarm_path/assistant)
 
 - name: Deploy agent-swarm assistant stack
   hosts: servers
@@ -37,6 +42,16 @@
         path: "{{ mono_repo_path }}"
         state: directory
         mode: "0755"
+        owner: "{{ mono_repo_owner.split(':')[0] }}"
+        group: "{{ mono_repo_owner.split(':')[1] }}"
+      when: mono_repo_owner is defined
+
+    - name: Ensure mono-repo directory exists (no ownership)
+      file:
+        path: "{{ mono_repo_path }}"
+        state: directory
+        mode: "0755"
+      when: mono_repo_owner is not defined
 
     - name: Clone or pull mono-repo
       git:
@@ -46,8 +61,17 @@
         update: yes
         accept_hostkey: yes
 
-    - name: Pull latest images and restart assistant stack
+    - name: Set mono-repo ownership
+      file:
+        path: "{{ mono_repo_path }}"
+        owner: "{{ mono_repo_owner.split(':')[0] }}"
+        group: "{{ mono_repo_owner.split(':')[1] }}"
+        recurse: yes
+      when: mono_repo_owner is defined
+
+    - name: Pull latest images, build local services, and restart stack
       community.docker.docker_compose_v2:
-        project_src: "{{ agent_swarm_path }}/assistant"
+        project_src: "{{ compose_project_src | default(agent_swarm_path + '/assistant') }}"
         pull: always
+        build: always
         state: present
