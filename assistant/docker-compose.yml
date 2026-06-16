@@ -17,9 +17,9 @@ services:
       - "${DASHBOARD_PORT:-9119}:9119"    # dashboard UI (requires HERMES_DASHBOARD=1)
     volumes:
       - ./data/${CONTAINER_NAME:-assistant}/hermes:/opt/data
-      - ${MONO_REPO_PATH}/brain:/brain-repo:ro
-      - ${MONO_REPO_PATH}/gbrain-skills:/opt/gbrain-home/.gbrain/skills
       - ${MONO_REPO_PATH}/.gbrain-data:/opt/gbrain-home
+      - ${MONO_REPO_PATH}/gbrain-skills:/opt/gbrain-home/.gbrain/skills
+      - ${MONO_REPO_PATH}/brain:/brain-repo
     networks:
       - assistant-net
     environment:

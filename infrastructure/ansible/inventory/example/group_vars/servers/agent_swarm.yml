@@ -1,0 +1,16 @@
+# Agent-swarm deploy vars — used by deploy-agent.yml.
+# Fill in real values in your inventory (e.g. inventory/myserver/).
+# The .env file on the server is NOT managed here -- create it manually.
+
+# Git remote URL for the agent-swarm repo (this repo).
+agent_swarm_repo: "git@github.com:axiomeintelligence/agent-swarm.git"
+
+# Absolute path on the server where agent-swarm will be cloned.
+agent_swarm_path: "/opt/agent-swarm"
+
+# Git remote URL for your mono-repo.
+mono_repo_url: "git@github.com:<your-org>/<your-mono-repo>.git"
+
+# Absolute path on the server where the mono-repo will be cloned.
+# Must match MONO_REPO_PATH in assistant/.env on the server.
+mono_repo_path: "/opt/mono-repo"

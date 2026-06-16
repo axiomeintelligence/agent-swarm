@@ -1,0 +1,53 @@
+---
+# deploy-agent.yml — day-2 operations playbook.
+# Clones or pulls both repos on the server and restarts the assistant stack.
+#
+# Prerequisites:
+#   - Server provisioned via site.yml (Docker installed, Tailscale connected)
+#   - assistant/.env created manually on the server at <agent_swarm_path>/assistant/.env
+#
+# Usage:
+#   ansible-playbook -i inventory/<name> deploy-agent.yml
+#
+# Required vars (define in inventory group_vars/servers/agent_swarm.yml):
+#   agent_swarm_repo  -- git remote URL for this repo
+#   agent_swarm_path  -- absolute path on server to clone/pull agent-swarm into
+#   mono_repo_url     -- git remote URL for the mono-repo
+#   mono_repo_path    -- absolute path on server to clone/pull mono-repo into
+
+- name: Deploy agent-swarm assistant stack
+  hosts: servers
+  tasks:
+    - name: Ensure agent-swarm repo directory exists
+      file:
+        path: "{{ agent_swarm_path }}"
+        state: directory
+        mode: "0755"
+
+    - name: Clone or pull agent-swarm repo
+      git:
+        repo: "{{ agent_swarm_repo }}"
+        dest: "{{ agent_swarm_path }}"
+        version: main
+        update: yes
+        accept_hostkey: yes
+
+    - name: Ensure mono-repo directory exists
+      file:
+        path: "{{ mono_repo_path }}"
+        state: directory
+        mode: "0755"
+
+    - name: Clone or pull mono-repo
+      git:
+        repo: "{{ mono_repo_url }}"
+        dest: "{{ mono_repo_path }}"
+        version: main
+        update: yes
+        accept_hostkey: yes
+
+    - name: Pull latest images and restart assistant stack
+      community.docker.docker_compose_v2:
+        project_src: "{{ agent_swarm_path }}/assistant"
+        pull: always
+        state: present

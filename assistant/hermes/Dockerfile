@@ -9,11 +9,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # ── Bun (required by gbrain) ──────────────────────────────────────────────────
-RUN curl -fsSL https://bun.sh/install | BUN_INSTALL=/usr/local bash
+ARG BUN_VERSION=1.1.43
+RUN curl -fsSL https://bun.sh/install | BUN_INSTALL=/usr/local BUN_INSTALL_VERSION=${BUN_VERSION} bash
 
 # ── gbrain CLI ────────────────────────────────────────────────────────────────
 ARG GBRAIN_REF=main
-RUN git clone --depth 1 https://github.com/garrytan/gbrain /opt/gbrain-src \
+RUN git clone --depth 1 --branch "${GBRAIN_REF}" https://github.com/garrytan/gbrain /opt/gbrain-src \
     && cd /opt/gbrain-src \
     && bun install \
     && bun link
