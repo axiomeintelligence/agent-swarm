@@ -84,7 +84,7 @@ In the cloud provider console, paste `infrastructure/cloud-config/cloud-config.y
 Apply the Tailscale-only cloud firewall (UDP 41641 inbound only). Wait ~2 minutes after instance creation for cloud-init to finish, then verify:
 
 ```bash
-tailscale status   # server should appear with a MagicDNS hostname, e.g. hz-agents-0
+tailscale status   # server should appear with a MagicDNS hostname, e.g. <server-tailscale-hostname>
 ```
 
 #### 2. Accept the Tailscale SSH host key (one-time manual step)
@@ -115,7 +115,7 @@ Edit `inventory/hosts` — replace `<server-tailscale-hostname>` with the MagicD
 
 ```ini
 [servers]
-hz-agents-0 ansible_user=cloud_user
+<server-tailscale-hostname> ansible_user=cloud_user
 ```
 
 `inventory/hosts` is gitignored — never commit it.
