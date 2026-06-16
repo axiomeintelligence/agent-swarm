@@ -22,6 +22,7 @@
 
 - name: Deploy agent-swarm assistant stack
   hosts: servers
+  become: yes
   tasks:
     - name: Ensure agent-swarm repo directory exists
       file:
@@ -30,6 +31,7 @@
         mode: "0755"
 
     - name: Clone or pull agent-swarm repo
+      become: no
       git:
         repo: "{{ agent_swarm_repo }}"
         dest: "{{ agent_swarm_path }}"
@@ -37,7 +39,7 @@
         update: yes
         accept_hostkey: yes
 
-    - name: Ensure mono-repo directory exists
+    - name: Ensure mono-repo directory exists with ownership
       file:
         path: "{{ mono_repo_path }}"
         state: directory
@@ -54,6 +56,7 @@
       when: mono_repo_owner is not defined
 
     - name: Clone or pull mono-repo
+      become: no
       git:
         repo: "{{ mono_repo_url }}"
         dest: "{{ mono_repo_path }}"
@@ -70,6 +73,7 @@
       when: mono_repo_owner is defined
 
     - name: Pull latest images, build local services, and restart stack
+      become: no
       community.docker.docker_compose_v2:
         project_src: "{{ compose_project_src | default(agent_swarm_path + '/assistant') }}"
         pull: always
