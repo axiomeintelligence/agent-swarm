@@ -5,8 +5,8 @@
 # 01-hermes-setup has seeded config.yaml from cli-config.yaml.example.
 #
 # Upgrade migration: if the sentinel exists but config.yaml still contains the
-# old HTTP gbrain entry (url: http://gbrain:3131), remove the sentinel so this
-# script re-injects with the new stdio command: entry.
+# old HTTP gbrain entry (url: http://gbrain:3131/mcp), the old injected block
+# is stripped and the sentinel removed so this script re-injects on this boot.
 #
 # Idempotency: sentinel file prevents re-injection on subsequent boots.
 set -e
@@ -16,21 +16,25 @@ CONFIG="${HERMES_HOME}/config.yaml"
 SENTINEL="${HERMES_HOME}/.mcp-init-done"
 
 # Migration: old stack used HTTP gbrain (url: http://gbrain:3131/mcp).
-# Remove sentinel so the new stdio entry is injected on this boot.
+# Strip the old injected block and remove sentinel so the new stdio entry
+# is injected on this boot.
 if [ -f "${SENTINEL}" ] && [ -f "${CONFIG}" ]; then
     if grep -q "http://gbrain:3131" "${CONFIG}" 2>/dev/null; then
-        echo "[hermes-mcp-init] Detected old HTTP gbrain entry — removing sentinel for re-injection"
+        echo "[hermes-mcp-init] Detected old HTTP gbrain entry -- stripping and re-injecting"
+        # Remove everything from the injected block marker to end of file
+        awk '/^# .* MCP servers injected by init-mcp.sh/{exit} {print}' \
+            "${CONFIG}" > "${CONFIG}.tmp" && mv "${CONFIG}.tmp" "${CONFIG}"
         rm -f "${SENTINEL}"
     fi
 fi
 
 if [ -f "${SENTINEL}" ]; then
-    echo "[hermes-mcp-init] MCP servers already registered — skipping"
+    echo "[hermes-mcp-init] MCP servers already registered -- skipping"
     exit 0
 fi
 
 if [ ! -f "${CONFIG}" ]; then
-    echo "[hermes-mcp-init] ERROR: ${CONFIG} not found — cannot inject MCP servers" >&2
+    echo "[hermes-mcp-init] ERROR: ${CONFIG} not found -- cannot inject MCP servers" >&2
     exit 1
 fi
 
@@ -57,4 +61,4 @@ chmod 640 "${CONFIG}" 2>/dev/null || true
 
 s6-setuidgid hermes touch "${SENTINEL}" 2>/dev/null || touch "${SENTINEL}" || true
 
-echo "[hermes-mcp-init] MCP config written — gbrain (stdio) and gdrive-mcp (sse) registered"
+echo "[hermes-mcp-init] MCP config written -- gbrain (stdio) and gdrive-mcp (sse) registered"
