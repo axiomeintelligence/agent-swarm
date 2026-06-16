@@ -1,0 +1,62 @@
+{
+  "planPath": "docs/superpowers/plans/2026-06-16-unified-assistant.md",
+  "tasks": [
+    {
+      "id": 26,
+      "subject": "Task 0: Update init-mcp.sh — stdio gbrain entry + migration",
+      "status": "completed",
+      "lastUpdated": "2026-06-16T14:30:00Z",
+      "description": "**Goal:** Replace HTTP gbrain MCP entry with stdio command entry, add upgrade migration.\n\n**Files:**\n- Modify: `assistant/hermes/scripts/init-mcp.sh`\n\n**Acceptance Criteria:**\n- [ ] Old HTTP block stripped on upgrade\n- [ ] New YAML uses `command: \"gbrain\"` with `args: [\"serve\", \"--home\", \"/opt/gbrain-home\"]`\n- [ ] Idempotent\n\n**Verify:** `bash -n assistant/hermes/scripts/init-mcp.sh`\n\n```json:metadata\n{\"files\": [\"assistant/hermes/scripts/init-mcp.sh\"], \"verifyCommand\": \"bash -n assistant/hermes/scripts/init-mcp.sh\", \"acceptanceCriteria\": [\"Old HTTP block stripped on upgrade\", \"New YAML uses stdio command\", \"Idempotent\"]}\n```"
+    },
+    {
+      "id": 27,
+      "subject": "Task 1: Create sync-brain.sh + 05-start-sync-brain.sh",
+      "status": "completed",
+      "lastUpdated": "2026-06-16T14:30:00Z",
+      "description": "**Goal:** Periodic git pull of brain content and gbrain import on new commits.\n\n**Files:**\n- Create: `assistant/hermes/scripts/sync-brain.sh`\n- Create: `assistant/hermes/scripts/05-start-sync-brain.sh`\n\n```json:metadata\n{\"files\": [\"assistant/hermes/scripts/sync-brain.sh\", \"assistant/hermes/scripts/05-start-sync-brain.sh\"], \"verifyCommand\": \"bash -n assistant/hermes/scripts/sync-brain.sh && bash -n assistant/hermes/scripts/05-start-sync-brain.sh\", \"acceptanceCriteria\": [\"PID guard\", \"HEAD SHA comparison\", \"BRAIN_SYNC_INTERVAL env var\"]}\n```"
+    },
+    {
+      "id": 28,
+      "subject": "Task 2: Create gbrain-skills-watch.sh + 06-start-skills-watch.sh",
+      "status": "completed",
+      "lastUpdated": "2026-06-16T14:30:00Z",
+      "description": "**Goal:** Hot-reload gbrain skills via inotifywait.\n\n**Files:**\n- Create: `assistant/hermes/scripts/gbrain-skills-watch.sh`\n- Create: `assistant/hermes/scripts/06-start-skills-watch.sh`\n\n```json:metadata\n{\"files\": [\"assistant/hermes/scripts/gbrain-skills-watch.sh\", \"assistant/hermes/scripts/06-start-skills-watch.sh\"], \"verifyCommand\": \"bash -n assistant/hermes/scripts/gbrain-skills-watch.sh && bash -n assistant/hermes/scripts/06-start-skills-watch.sh\", \"acceptanceCriteria\": [\"inotifywait -m -r\", \"PID guard\", \"Restart loop\"]}\n```"
+    },
+    {
+      "id": 29,
+      "subject": "Task 3: Update Dockerfile — install Bun + gbrain + inotify-tools",
+      "status": "completed",
+      "lastUpdated": "2026-06-16T14:30:00Z",
+      "description": "**Goal:** Extend hermes-agent base with Bun, gbrain, inotify-tools.\n\n**Files:**\n- Modify: `assistant/hermes/Dockerfile`\n\n```json:metadata\n{\"files\": [\"assistant/hermes/Dockerfile\"], \"verifyCommand\": \"docker build -t assistant-test assistant/hermes/\", \"acceptanceCriteria\": [\"Bun pinned via BUN_VERSION ARG\", \"GBRAIN_REF wired into git clone\", \"inotify-tools installed\"]}\n```"
+    },
+    {
+      "id": 30,
+      "subject": "Task 4: Update docker-compose.yml — remove gbrain service, add volumes",
+      "status": "completed",
+      "lastUpdated": "2026-06-16T14:30:00Z",
+      "description": "**Goal:** Drop standalone gbrain service; add mono-repo volumes.\n\n**Files:**\n- Modify: `assistant/docker-compose.yml`\n\n```json:metadata\n{\"files\": [\"assistant/docker-compose.yml\"], \"verifyCommand\": \"docker compose -f assistant/docker-compose.yml config\", \"acceptanceCriteria\": [\"No gbrain service\", \"Parent mount before child mount\", \"Brain mount writable\"]}\n```"
+    },
+    {
+      "id": 31,
+      "subject": "Task 5: Update .env.example",
+      "status": "completed",
+      "lastUpdated": "2026-06-16T14:30:00Z",
+      "description": "**Goal:** Remove gbrain vars, add mono-repo vars.\n\n**Files:**\n- Modify: `assistant/.env.example`\n\n```json:metadata\n{\"files\": [\"assistant/.env.example\"], \"verifyCommand\": \"\", \"acceptanceCriteria\": [\"MONO_REPO_PATH present\", \"BRAIN_SYNC_INTERVAL present\", \"Old gbrain vars removed\"]}\n```"
+    },
+    {
+      "id": 32,
+      "subject": "Task 6: Update assistant/README.md",
+      "status": "completed",
+      "lastUpdated": "2026-06-16T14:30:00Z",
+      "description": "**Goal:** Document two-container architecture.\n\n**Files:**\n- Modify: `assistant/README.md`\n\n```json:metadata\n{\"files\": [\"assistant/README.md\"], \"verifyCommand\": \"\", \"acceptanceCriteria\": [\"Two-container diagram\", \"Volume setup docs\", \"Quick-start commands\"]}\n```"
+    },
+    {
+      "id": 33,
+      "subject": "Task 7: Create Ansible deploy-agent.yml + example vars",
+      "status": "completed",
+      "lastUpdated": "2026-06-16T14:30:00Z",
+      "description": "**Goal:** Day-2 operations playbook for server deployments.\n\n**Files:**\n- Create: `infrastructure/ansible/deploy-agent.yml`\n- Create: `infrastructure/ansible/inventory/example/group_vars/servers/agent_swarm.yml`\n\n```json:metadata\n{\"files\": [\"infrastructure/ansible/deploy-agent.yml\", \"infrastructure/ansible/inventory/example/group_vars/servers/agent_swarm.yml\"], \"verifyCommand\": \"ansible-playbook --syntax-check -i infrastructure/ansible/inventory/example infrastructure/ansible/deploy-agent.yml\", \"acceptanceCriteria\": [\"Clones/pulls both repos\", \"Restarts stack via docker compose\", \"Example vars documented\"]}\n```"
+    }
+  ],
+  "lastUpdated": "2026-06-16T14:30:00Z"
+}
