@@ -22,7 +22,7 @@ if [ "${BEFORE}" != "${AFTER}" ]; then
     BEFORE_SHORT=$(printf '%.8s' "${BEFORE}")
     AFTER_SHORT=$(printf '%.8s' "${AFTER}")
     echo "[sync-brain] New commits (${BEFORE_SHORT}..${AFTER_SHORT}) -- importing"
-    gbrain import "${BRAIN_REPO}" --home "${GBRAIN_HOME}"
+    gbrain import "${BRAIN_REPO}"
 else
     echo "[sync-brain] No new commits at $(date -u +%H:%M:%SZ)"
 fi
