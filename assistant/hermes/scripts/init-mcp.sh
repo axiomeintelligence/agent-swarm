@@ -41,6 +41,19 @@ mkdir -p "${GBRAIN_HOME}"
 if [ -n "$(id -u hermes 2>/dev/null)" ]; then
     chown -R hermes:hermes "${GBRAIN_HOME}" 2>/dev/null || true
 fi
+
+# Remove stale PGLite lock left by a previous container run.
+# On restart the holding PID no longer exists but PGLite can't detect cross-container
+# PIDs as dead — it waits 30s before stealing the lock, which races with hermes startup.
+PGLITE_LOCK="${GBRAIN_HOME}/.gbrain/brain.pglite/.gbrain-lock/lock"
+if [ -f "${PGLITE_LOCK}" ]; then
+    LOCK_PID=$(python3 -c "import json; print(json.load(open('${PGLITE_LOCK}')).get('pid', 0))" 2>/dev/null || echo 0)
+    if [ -n "${LOCK_PID}" ] && [ "${LOCK_PID}" != "0" ] && ! kill -0 "${LOCK_PID}" 2>/dev/null; then
+        echo "[hermes-mcp-init] Removing stale PGLite lock (dead pid ${LOCK_PID})"
+        rm -f "${PGLITE_LOCK}"
+    fi
+fi
+
 if [ ! -f "${GBRAIN_HOME}/.gbrain/config.json" ]; then
     echo "[hermes-mcp-init] Initializing gbrain brain (PGLite, no embeddings)"
     s6-setuidgid hermes gbrain init --pglite --no-embedding 2>&1 || true
