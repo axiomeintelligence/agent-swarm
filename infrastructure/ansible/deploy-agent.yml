@@ -38,6 +38,7 @@
         version: main
         update: yes
         accept_hostkey: yes
+        force: yes
 
     - name: Ensure mono-repo directory exists with ownership
       file:
