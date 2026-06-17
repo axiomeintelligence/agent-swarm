@@ -4,6 +4,56 @@ Breaking changes and migration steps, newest first.
 
 ---
 
+## 2026-06-17 — gbrain runs as HTTP MCP server inside hermes container
+
+### What changed
+
+- **`assistant/hermes/scripts/02-gbrain-http.sh`** — new cont-init.d script (runs first) that:
+  - Removes any stale PGLite lock from a previous container run
+  - Initialises the gbrain brain on first boot
+  - Registers a one-time OAuth `client_credentials` client (credentials cached in `${GBRAIN_HOME}/.hermes-oauth-creds`)
+  - Starts `gbrain serve --http --port 3131` as a background process so both `hermes gateway run` and `hermes dashboard` share a single gbrain instance
+  - Obtains a 30-day bearer token and writes it to `/tmp/gbrain-http-token` for the next script
+- **`assistant/hermes/scripts/init-mcp.sh`** (03-mcp-config) — rewritten to:
+  - Always strip and re-inject the MCP block (no sentinel) so the fresh bearer token is picked up on every boot
+  - Register gbrain as `url: http://localhost:3131/mcp` with `Authorization: Bearer <token>` header instead of the old stdio subprocess
+  - Register gdrive-mcp as before
+- **`assistant/hermes/Dockerfile`** — adds `02-gbrain-http.sh` to the image
+- **`assistant/hermes/scripts/sync-brain.sh`** — detects HTTP mode (gbrain health endpoint) and calls the MCP `import_documents` tool via HTTP instead of the CLI (which cannot acquire the PGLite write lock while the HTTP server holds it)
+
+### Why
+
+Running `hermes dashboard` and `hermes gateway run` each spawned an independent gbrain stdio subprocess. Both competed for the PGLite exclusive write lock — one would succeed, the other would fail after a 30-second timeout. The winner's MCP session was then orphaned (Python `CancelledError`) because the hermes task group cancelled when the loser's connection failed. The HTTP server approach means exactly one gbrain process holds the lock; both hermes processes connect to it over localhost HTTP.
+
+### No new environment variables required
+
+The OAuth client credentials are generated automatically by `02-gbrain-http.sh` on first boot and persisted to `${GBRAIN_HOME}/.hermes-oauth-creds` (a Docker volume, so they survive container restarts). No `GBRAIN_ADMIN_TOKEN` or similar pre-shared secret is needed.
+
+### Migration steps
+
+**Existing deployments** — pull, rebuild, and restart hermes:
+
+```bash
+git pull
+docker compose build hermes
+docker compose up -d hermes
+```
+
+The stale sentinel file (`${HERMES_HOME}/.mcp-init-done`) from the old init-mcp.sh is harmless — the new `03-mcp-config` ignores it and always re-injects. To clean it up manually:
+
+```bash
+docker exec <hermes-container> rm -f /opt/data/.mcp-init-done
+```
+
+On restart, gbrain starts as an HTTP server and hermes connects to it via localhost. Check logs:
+
+```bash
+docker exec <hermes-container> cat /opt/data/logs/gbrain-http.log
+docker logs <hermes-container> 2>&1 | grep "\[gbrain-http\]\|\[hermes-mcp-init\]"
+```
+
+---
+
 ## 2026-06-12 — G-Brain OAuth token refresh on every Hermes startup
 
 ### What changed
