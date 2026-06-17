@@ -72,10 +72,28 @@
         recurse: yes
       when: mono_repo_owner is defined
 
-    - name: Pull latest images, build local services, and restart stack
+    - name: Pull latest published images
       become: no
       community.docker.docker_compose_v2:
         project_src: "{{ compose_project_src | default(agent_swarm_path + '/assistant') }}"
         pull: always
+        build: never
+        state: present
+
+    - name: Build local-only services and start full stack
+      become: no
+      community.docker.docker_compose_v2:
+        project_src: "{{ compose_project_src | default(agent_swarm_path + '/assistant') }}"
+        pull: never
         build: always
+        services:
+          - devbot-mcp
+        state: present
+
+    - name: Ensure full stack is running
+      become: no
+      community.docker.docker_compose_v2:
+        project_src: "{{ compose_project_src | default(agent_swarm_path + '/assistant') }}"
+        pull: never
+        build: never
         state: present
