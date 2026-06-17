@@ -17,7 +17,8 @@ ARG GBRAIN_REF=master
 RUN git clone --depth 1 --branch "${GBRAIN_REF}" https://github.com/garrytan/gbrain /opt/gbrain-src \
     && cd /opt/gbrain-src \
     && bun install \
-    && bun link
+    && bun link \
+    && ln -s /root/.bun/bin/gbrain /usr/local/bin/gbrain
 
 ENV GBRAIN_HOME=/opt/gbrain-home
 
