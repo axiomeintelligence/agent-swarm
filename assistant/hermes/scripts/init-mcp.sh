@@ -16,12 +16,17 @@ CONFIG="${HERMES_HOME}/config.yaml"
 SENTINEL="${HERMES_HOME}/.mcp-init-done"
 
 # Migration: old stack used HTTP gbrain (url: http://gbrain:3131/mcp).
+# Also migrate stdio gbrain that passed --home as an arg instead of via env.
 # Strip the old injected block and remove sentinel so the new stdio entry
 # is injected on this boot.
 if [ -f "${SENTINEL}" ] && [ -f "${CONFIG}" ]; then
     if grep -q "http://gbrain:3131" "${CONFIG}" 2>/dev/null; then
         echo "[hermes-mcp-init] Detected old HTTP gbrain entry -- stripping and re-injecting"
-        # Remove everything from the injected block marker to end of file
+        awk '/^# .* MCP servers injected by init-mcp.sh/{exit} {print}' \
+            "${CONFIG}" > "${CONFIG}.tmp" && mv "${CONFIG}.tmp" "${CONFIG}"
+        rm -f "${SENTINEL}"
+    elif grep -q -- "--home" "${CONFIG}" 2>/dev/null; then
+        echo "[hermes-mcp-init] Detected old --home arg in gbrain entry -- stripping and re-injecting"
         awk '/^# .* MCP servers injected by init-mcp.sh/{exit} {print}' \
             "${CONFIG}" > "${CONFIG}.tmp" && mv "${CONFIG}.tmp" "${CONFIG}"
         rm -f "${SENTINEL}"
@@ -46,7 +51,9 @@ cat >> "${CONFIG}" << 'EOF'
 mcp_servers:
   gbrain:
     command: "gbrain"
-    args: ["serve", "--home", "/opt/gbrain-home"]
+    args: ["serve"]
+    env:
+      GBRAIN_HOME: "/opt/gbrain-home"
     timeout: 120
 
   gdrive-mcp:
