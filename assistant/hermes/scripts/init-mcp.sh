@@ -45,6 +45,19 @@ if [ ! -f "${GBRAIN_HOME}/.gbrain/config.json" ]; then
     echo "[hermes-mcp-init] Initializing gbrain brain (PGLite, no embeddings)"
     s6-setuidgid hermes gbrain init --pglite --no-embedding 2>&1 || true
 fi
+# Disable gbrain self-upgrade: it auto-updates during startup which closes the
+# MCP stdio connection before hermes completes the handshake.
+if [ -f "${GBRAIN_HOME}/.gbrain/config.json" ]; then
+    python3 -c "
+import json, sys
+p = '${GBRAIN_HOME}/.gbrain/config.json'
+with open(p) as f: c = json.load(f)
+if c.get('self_upgrade', {}).get('mode') != 'off':
+    c['self_upgrade'] = {'mode': 'off'}
+    with open(p, 'w') as f: json.dump(c, f, indent=2)
+    print('[hermes-mcp-init] Disabled gbrain self-upgrade (mode=off)')
+" 2>/dev/null || true
+fi
 
 if [ -f "${SENTINEL}" ]; then
     echo "[hermes-mcp-init] MCP servers already registered -- skipping"
