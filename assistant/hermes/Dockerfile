@@ -18,7 +18,7 @@ RUN git clone --depth 1 --branch "${GBRAIN_REF}" https://github.com/garrytan/gbr
     && cd /opt/gbrain-src \
     && bun install \
     && bun link \
-    && printf '#!/bin/sh\nexec bun /root/.bun/install/global/node_modules/gbrain/src/cli.ts "$@"\n' > /usr/local/bin/gbrain \
+    && printf '#!/bin/sh\nexec bun /opt/gbrain-src/src/cli.ts "$@"\n' > /usr/local/bin/gbrain \
     && chmod +x /usr/local/bin/gbrain
 
 ENV GBRAIN_HOME=/opt/gbrain-home
