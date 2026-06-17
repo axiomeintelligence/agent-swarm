@@ -33,6 +33,19 @@ if [ -f "${SENTINEL}" ] && [ -f "${CONFIG}" ]; then
     fi
 fi
 
+GBRAIN_HOME="${GBRAIN_HOME:-/opt/gbrain-home}"
+
+# Ensure gbrain home is owned by the hermes user and brain is initialized.
+# init-mcp.sh runs as root; gbrain serve runs as hermes -- files must be writable by hermes.
+mkdir -p "${GBRAIN_HOME}"
+if [ -n "$(id -u hermes 2>/dev/null)" ]; then
+    chown -R hermes:hermes "${GBRAIN_HOME}" 2>/dev/null || true
+fi
+if [ ! -f "${GBRAIN_HOME}/.gbrain/config.json" ]; then
+    echo "[hermes-mcp-init] Initializing gbrain brain (PGLite, no embeddings)"
+    s6-setuidgid hermes gbrain init --pglite --no-embedding 2>&1 || true
+fi
+
 if [ -f "${SENTINEL}" ]; then
     echo "[hermes-mcp-init] MCP servers already registered -- skipping"
     exit 0
