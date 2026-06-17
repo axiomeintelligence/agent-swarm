@@ -13,7 +13,7 @@ ARG BUN_VERSION=1.1.43
 RUN curl -fsSL https://bun.sh/install | BUN_INSTALL=/usr/local BUN_INSTALL_VERSION=${BUN_VERSION} bash
 
 # ── gbrain CLI ────────────────────────────────────────────────────────────────
-ARG GBRAIN_REF=main
+ARG GBRAIN_REF=master
 RUN git clone --depth 1 --branch "${GBRAIN_REF}" https://github.com/garrytan/gbrain /opt/gbrain-src \
     && cd /opt/gbrain-src \
     && bun install \
