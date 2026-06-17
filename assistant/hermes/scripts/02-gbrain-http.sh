@@ -9,7 +9,7 @@
 # server is started fresh, and a new short-lived token is obtained.
 set -e
 
-GBRAIN_HOME="${GBRAIN_HOME:-/opt/gbrain-home}"
+export GBRAIN_HOME="${GBRAIN_HOME:-/opt/gbrain-home}"
 GBRAIN_PORT="${GBRAIN_PORT:-3131}"
 CREDS_FILE="${GBRAIN_HOME}/.hermes-oauth-creds"
 TOKEN_FILE="/tmp/gbrain-http-token"
