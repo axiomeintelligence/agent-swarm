@@ -1,8 +1,7 @@
 FROM nousresearch/hermes-agent:latest
 
-# ── System deps for gbrain + skills hot-reload ────────────────────────────────
+# ── System deps for gbrain ────────────────────────────────────────────────────
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    inotify-tools \
     git \
     curl \
     unzip \
@@ -25,16 +24,13 @@ ENV GBRAIN_HOME=/opt/gbrain-home
 
 # ── cont-init.d scripts ───────────────────────────────────────────────────────
 # Run in lexicographic order after 01-hermes-setup seeds config.yaml:
-#   02-gbrain-http        -- starts gbrain as HTTP MCP server on localhost:3131
-#   03-mcp-config         -- injects MCP server registrations (gbrain HTTP + gdrive-mcp sse)
-#   05-start-sync-brain   -- backgrounds periodic mono-repo sync loop
-#   06-start-skills-watch -- backgrounds inotifywait skills hot-reload
+#   02-gbrain-http      -- starts gbrain as HTTP MCP server on localhost:3131
+#   03-mcp-config       -- injects MCP server registrations (gbrain HTTP + gdrive-mcp sse)
+#   05-start-sync-brain -- backgrounds periodic mono-repo pull (skills + brain content)
 
-COPY --chmod=755 scripts/02-gbrain-http.sh        /etc/cont-init.d/02-gbrain-http
-COPY --chmod=755 scripts/init-mcp.sh              /etc/cont-init.d/03-mcp-config
-COPY --chmod=755 scripts/05-start-sync-brain.sh   /etc/cont-init.d/05-start-sync-brain
-COPY --chmod=755 scripts/06-start-skills-watch.sh /etc/cont-init.d/06-start-skills-watch
+COPY --chmod=755 scripts/02-gbrain-http.sh      /etc/cont-init.d/02-gbrain-http
+COPY --chmod=755 scripts/init-mcp.sh            /etc/cont-init.d/03-mcp-config
+COPY --chmod=755 scripts/05-start-sync-brain.sh /etc/cont-init.d/05-start-sync-brain
 
 # ── Helper scripts in PATH ────────────────────────────────────────────────────
-COPY --chmod=755 scripts/sync-brain.sh          /usr/local/bin/sync-brain.sh
-COPY --chmod=755 scripts/gbrain-skills-watch.sh /usr/local/bin/gbrain-skills-watch.sh
+COPY --chmod=755 scripts/sync-brain.sh /usr/local/bin/sync-brain.sh

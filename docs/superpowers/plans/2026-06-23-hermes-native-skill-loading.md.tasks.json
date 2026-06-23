@@ -1,0 +1,26 @@
+{
+  "planPath": "docs/superpowers/plans/2026-06-23-hermes-native-skill-loading.md",
+  "tasks": [
+    {
+      "id": 1,
+      "subject": "Task 1: Swap gbrain-skills shim for native bind-mount and rename env var",
+      "status": "pending",
+      "description": "**Goal:** Image builds without inotify watcher, compose template mounts mono/skills read-only into Hermes category path, periodic sync loop reads SKILL_SYNC_INTERVAL.\n\n**Files:**\n- Modify: assistant/docker-compose.yml\n- Modify: assistant/hermes/Dockerfile\n- Modify: assistant/hermes/scripts/05-start-sync-brain.sh\n- Delete: assistant/hermes/scripts/06-start-skills-watch.sh\n- Delete: assistant/hermes/scripts/gbrain-skills-watch.sh\n\n**Verify:** cd assistant && ! grep -rn 'BRAIN_SYNC_INTERVAL|gbrain-skills|inotify' docker-compose.yml hermes/Dockerfile hermes/scripts/ && MONO_REPO_PATH=/tmp/mono docker compose config | grep -E 'skills:/opt/data/skills/mono:ro|SKILL_SYNC_INTERVAL' && docker compose build hermes\n\n```json:metadata\n{\"files\":[\"assistant/docker-compose.yml\",\"assistant/hermes/Dockerfile\",\"assistant/hermes/scripts/05-start-sync-brain.sh\",\"assistant/hermes/scripts/06-start-skills-watch.sh\",\"assistant/hermes/scripts/gbrain-skills-watch.sh\"],\"verifyCommand\":\"cd assistant && ! grep -rn 'BRAIN_SYNC_INTERVAL\\\\|gbrain-skills\\\\|inotify' docker-compose.yml hermes/Dockerfile hermes/scripts/ && MONO_REPO_PATH=/tmp/mono docker compose config | grep -E 'skills:/opt/data/skills/mono:ro|SKILL_SYNC_INTERVAL' && docker compose build hermes\",\"acceptanceCriteria\":[\"compose.yml has no gbrain-skills/BRAIN_SYNC_INTERVAL refs\",\"compose.yml has skills:/opt/data/skills/mono:ro mount\",\"compose.yml has SKILL_SYNC_INTERVAL env\",\"Dockerfile no inotify-tools / no deleted COPYs\",\"05-start-sync-brain reads SKILL_SYNC_INTERVAL\",\"watcher scripts deleted\",\"compose config + build succeed\"]}\n```"
+    },
+    {
+      "id": 2,
+      "subject": "Task 2: Update operator-facing docs (.env.example, README, UPGRADE)",
+      "status": "pending",
+      "blockedBy": [1],
+      "description": "**Goal:** Operators learn the new mono layout, the renamed env var, the read-only mount semantics, and how to migrate an existing deployment.\n\n**Files:**\n- Modify: assistant/.env.example\n- Modify: assistant/README.md\n- Modify: UPGRADE.md\n\n**Verify:** grep -q '^SKILL_SYNC_INTERVAL=300$' assistant/.env.example && ! grep -q '^BRAIN_SYNC_INTERVAL' assistant/.env.example && grep -q 'SKILL_SYNC_INTERVAL' assistant/README.md && ! grep -qE '\\| `BRAIN_SYNC_INTERVAL`' assistant/README.md && grep -q '2026-06-23' UPGRADE.md\n\n```json:metadata\n{\"files\":[\"assistant/.env.example\",\"assistant/README.md\",\"UPGRADE.md\"],\"verifyCommand\":\"grep -q '^SKILL_SYNC_INTERVAL=300$' assistant/.env.example && ! grep -q '^BRAIN_SYNC_INTERVAL' assistant/.env.example && grep -q 'SKILL_SYNC_INTERVAL' assistant/README.md && ! grep -qE '\\\\| \\\\`BRAIN_SYNC_INTERVAL\\\\`' assistant/README.md && grep -q '2026-06-23' UPGRADE.md\",\"acceptanceCriteria\":[\".env.example mono block updated\",\".env.example uses SKILL_SYNC_INTERVAL=300\",\"README env table row replaced\",\"README documents read-only mono category\",\"UPGRADE.md has 2026-06-23 entry\"]}\n```"
+    },
+    {
+      "id": 3,
+      "subject": "Task 3: Deploy to WMC server and verify spec checklist",
+      "status": "pending",
+      "blockedBy": [1, 2],
+      "description": "**Goal:** Live deployment on cloud_user@ubuntu-8gb-ash-1 (/opt/wmc-agent-swarm) reflects the new wiring; all seven spec verification items pass. No new commit.\n\n**Files (on host):**\n- Modify: /opt/wmc-agent-swarm/assistant/.env (rename BRAIN_SYNC_INTERVAL -> SKILL_SYNC_INTERVAL)\n- Bootstrap: /opt/wmc-mono/skills/ (rename from gbrain-skills/ if non-empty, else create + placeholder skill)\n\n**Verify:** ssh cloud_user@ubuntu-8gb-ash-1 'docker exec -u hermes WMC-assistant sh -c \"HERMES_HOME=/opt/data hermes skills list\" | grep -c mono' (>= 1)\n\n```json:metadata\n{\"files\":[\"/opt/wmc-agent-swarm/assistant/.env\",\"/opt/wmc-mono/skills/wmc-placeholder/SKILL.md\"],\"verifyCommand\":\"ssh cloud_user@ubuntu-8gb-ash-1 'docker exec -u hermes WMC-assistant sh -c \\\"HERMES_HOME=/opt/data hermes skills list\\\" | grep -c mono'\",\"acceptanceCriteria\":[\"spec item 1 passes\",\"spec item 2 passes\",\"spec item 3 passes\",\"spec item 4 passes\",\"spec item 5 passes\",\"spec item 6 passes\",\"spec item 7 passes\"]}\n```"
+    }
+  ],
+  "lastUpdated": "2026-06-23T00:00:00Z"
+}

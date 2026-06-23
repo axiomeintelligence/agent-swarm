@@ -8,6 +8,6 @@ if [ -f "${PIDFILE}" ] && kill -0 "$(cat "${PIDFILE}")" 2>/dev/null; then
 fi
 while true; do
     /usr/local/bin/sync-brain.sh
-    sleep "${BRAIN_SYNC_INTERVAL:-300}"
+    sleep "${SKILL_SYNC_INTERVAL:-300}"
 done &
 echo $! > "${PIDFILE}"

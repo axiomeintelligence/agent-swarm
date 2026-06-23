@@ -4,6 +4,44 @@ Breaking changes and migration steps, newest first.
 
 ---
 
+## 2026-06-23 — Native Hermes skill loading; `BRAIN_SYNC_INTERVAL` → `SKILL_SYNC_INTERVAL`
+
+### What changed
+
+- **`assistant/docker-compose.yml`** — mono skills now bind-mounted read-only at `/opt/data/skills/mono` so Hermes auto-loads them natively (no gbrain hop). The previous `${MONO_REPO_PATH}/gbrain-skills` mount is removed.
+- **Env var rename:** `BRAIN_SYNC_INTERVAL` → `SKILL_SYNC_INTERVAL`. The script reads only the new name; if a server `.env` still uses the old name it will be silently ignored and the script default (300 s) will apply.
+- **Deleted scripts:** `assistant/hermes/scripts/06-start-skills-watch.sh` and `assistant/hermes/scripts/gbrain-skills-watch.sh`. Hermes auto-scans the skills tree — no inotify watcher needed.
+- **Dockerfile:** dropped `inotify-tools` (only the deleted watcher used it).
+
+### Migration (per existing deployment)
+
+1. On the host, rename the variable in the server-side `assistant/.env`:
+   ```bash
+   sed -i 's/^BRAIN_SYNC_INTERVAL=/SKILL_SYNC_INTERVAL=/' /opt/<deployment>/assistant/.env
+   ```
+2. In the mono repo, create `skills/` at the top level (or rename the existing `gbrain-skills/` to `skills/`) and ensure at least one `<name>/SKILL.md` exists. Commit and push.
+3. On the host, ensure the bind-mount target exists in case the mono repo hasn't been pulled yet:
+   ```bash
+   mkdir -p ${MONO_REPO_PATH}/skills
+   ```
+4. Pull the new image and recreate the stack:
+   ```bash
+   cd /opt/<deployment>/assistant
+   docker compose pull
+   docker compose up -d
+   ```
+5. Verify (inside the running container):
+   ```bash
+   docker exec -u hermes <container> hermes skills list | grep mono
+   ```
+   Expected: one row per `mono/skills/<name>/SKILL.md`, status `enabled`.
+
+### Why
+
+Hermes' built-in skills system is now mature: dropping a `SKILL.md` into `<HERMES_HOME>/skills/<category>/<name>/` makes it appear in `hermes skills list` immediately, with no restart and no registration step. The gbrain-as-skill-store layer (inotify watcher + `gbrain import` + MCP retrieval) was a workaround from earlier Hermes versions and is no longer required.
+
+---
+
 ## 2026-06-17 — gbrain runs as HTTP MCP server inside hermes container
 
 ### What changed

@@ -18,7 +18,7 @@ services:
     volumes:
       - ./data/${CONTAINER_NAME:-assistant}/hermes:/opt/data
       - ${MONO_REPO_PATH}/.gbrain-data:/opt/gbrain-home
-      - ${MONO_REPO_PATH}/gbrain-skills:/opt/gbrain-home/.gbrain/skills
+      - ${MONO_REPO_PATH}/skills:/opt/data/skills/mono:ro
       - ${MONO_REPO_PATH}/brain:/brain-repo
     networks:
       - assistant-net
@@ -49,7 +49,7 @@ services:
       - TZ=${TZ:-UTC}
       # ── G-Brain ──────────────────────────────────────────────────────────────
       - GBRAIN_HOME=/opt/gbrain-home
-      - BRAIN_SYNC_INTERVAL=${BRAIN_SYNC_INTERVAL:-300}
+      - SKILL_SYNC_INTERVAL=${SKILL_SYNC_INTERVAL:-300}
       - MONO_REPO_PATH=${MONO_REPO_PATH:-}
 
   gdrive-mcp:

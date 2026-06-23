@@ -1,6 +1,6 @@
 # assistant/
 
-A self-hostable AI assistant composed of two Docker services: the Hermes AI gateway (official Nous Research image) with G-Brain knowledge graph embedded as a stdio subprocess, and Google Drive MCP.
+A self-hostable AI assistant composed of two Docker services: the Hermes AI gateway (official Nous Research image, with G-Brain running as an HTTP MCP server on `localhost:3131` inside the same container), and Google Drive MCP.
 
 ## Architecture
 
@@ -10,19 +10,23 @@ A self-hostable AI assistant composed of two Docker services: the Hermes AI gate
 │                                                             │
 │  ┌──────────────────────────────┐    ┌───────────────┐      │
 │  │           hermes             │    │  gdrive-mcp   │      │
-│  │          :8642               │    │  :3000 SSE    │      │
-│  │                              │    │               │      │
-│  │  Hermes Agent (official)     │    │ GDrive MCP    │      │
-│  │  + G-Brain MCP (stdio)       │    │ supergateway  │      │
-│  │    PGLite graph              │    │               │      │
+│  │          :8642 gateway       │    │  :3000 SSE    │      │
+│  │          :9119 dashboard     │    │               │      │
+│  │                              │    │ GDrive MCP    │      │
+│  │  Hermes Agent (official)     │    │ supergateway  │      │
+│  │  + G-Brain HTTP MCP          │    │               │      │
+│  │    on localhost:3131         │    │               │      │
+│  │    PGLite store              │    │               │      │
 │  └──────────────────────────────┘    └───────────────┘      │
 │        │                                  │                 │
-│   /opt/data                          (stateless)            │
-│   /opt/mono-repo (read-only)                                │
+│   /opt/data (hermes state)           (stateless)            │
+│   /opt/gbrain-home (gbrain state)                           │
+│   /opt/data/skills/mono (ro, from mono/skills)              │
+│   /brain-repo (from mono/brain)                             │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**hermes** — Thin wrapper on `nousresearch/hermes-agent:latest`. On first boot, a `cont-init.d` script appends MCP server registrations to `config.yaml` and writes a sentinel file so re-boots are no-ops. G-Brain runs as an embedded stdio subprocess inside this container — no separate container or HTTP port required.
+**hermes** — Thin wrapper on `nousresearch/hermes-agent:latest`. On every container start, `cont-init.d` scripts start G-Brain as an HTTP MCP server on `localhost:3131` and inject fresh MCP server registrations into `config.yaml` (the old MCP block is stripped and re-injected on each boot so the bearer token stays current — do not rely on manual edits to the injected block; they will be overwritten).
 
 **gdrive-mcp** — Runs `@modelcontextprotocol/server-gdrive` (stdio) behind a `supergateway` SSE bridge on port 3000. Requires `GOOGLE_SERVICE_ACCOUNT_JSON`. Without it the container starts but Drive tool calls fail.
 
@@ -52,8 +56,8 @@ docker compose up -d
 | `AI_PROVIDER` | No | `anthropic` | Model provider: `anthropic` \| `openai` \| `openrouter` |
 | `OPENAI_API_KEY` | No | — | OpenAI key (required if `AI_PROVIDER=openai`) |
 | `OPENROUTER_API_KEY` | No | — | OpenRouter key (required if `AI_PROVIDER=openrouter`) |
-| `MONO_REPO_PATH` | No | — | Host path to a local clone of your mono-repo; mounted read-only into G-Brain |
-| `BRAIN_SYNC_INTERVAL` | No | `3600` | Seconds between automatic G-Brain sync runs |
+| `MONO_REPO_PATH` | No | — | Host path to a local clone of your mono-repo. `skills/` is bind-mounted read-only into Hermes; `brain/` is the periodic G-Brain import source; `.gbrain-data/` holds the PGLite database |
+| `SKILL_SYNC_INTERVAL` | No | `300` | Seconds between mono-repo `git pull` ticks (refreshes Hermes skills + re-imports `brain/` into G-Brain) |
 | `GOOGLE_SERVICE_ACCOUNT_JSON` | No | — | Full JSON of a Google service account key with Drive API access |
 | `TELEGRAM_BOT_TOKEN` | No | — | Enable Telegram platform |
 | `TELEGRAM_ALLOWED_USERS` | No | — | Allowed Telegram usernames |
@@ -75,36 +79,29 @@ Data is persisted under `assistant/data/<CONTAINER_NAME>/`:
 | Path | Content |
 |------|---------|
 | `data/<name>/hermes/` | Hermes config, state DB, logs |
-| `<MONO_REPO_PATH>` | Mono-repo source (mounted read-only at `/opt/mono-repo`) |
-| `/opt/mono-repo/docs/` | G-Brain indexes scanned documents from here |
-| `/opt/mono-repo/.gbrain/` | G-Brain PGLite database (persisted inside mono-repo clone) |
+| `<MONO_REPO_PATH>/brain/` | G-Brain knowledge source; periodically re-imported into PGLite |
+| `<MONO_REPO_PATH>/skills/` | Hermes skill packs; bind-mounted **read-only** at `/opt/data/skills/mono`. Hermes auto-scans new `SKILL.md` files within one `SKILL_SYNC_INTERVAL` tick. Authoring is via `git` in the mono repo — `hermes skills install --category mono` is not supported (mount is read-only by design). |
+| `<MONO_REPO_PATH>/.gbrain-data/` | G-Brain PGLite database; persistent state |
 
 ## MCP server registration
 
-The `hermes/scripts/init-mcp.sh` cont-init script runs once on first boot and appends the following block to `config.yaml`:
+The `hermes/scripts/init-mcp.sh` cont-init script runs on every container start. It strips any previously-injected block and re-injects fresh MCP server registrations into `config.yaml` so the bearer token (issued each boot by `02-gbrain-http.sh`) is always current. Manual edits to the injected `mcp_servers` block will not survive a reboot.
 
 ```yaml
+# ── MCP servers injected by init-mcp.sh ──────────────────────────────────────
 mcp_servers:
   gbrain:
-    command: "gbrain"
-    args: ["serve", "--stdio"]
+    url: "http://localhost:3131/mcp"
+    headers:
+      Authorization: "Bearer <token-issued-at-boot>"
     timeout: 120
     connect_timeout: 30
-
   gdrive-mcp:
     url: "http://gdrive-mcp:3000/sse"
     transport: sse
     timeout: 120
     connect_timeout: 30
 ```
-
-A sentinel file (`data/<name>/hermes/.mcp-init-done`) prevents re-injection on subsequent boots, preserving any manual edits to the block.
-
-> **Upgrading from the 3-container stack?** If you previously ran a separate `gbrain` container with a URL-style MCP registration (pointing at port 3131), delete the sentinel file to force re-injection with the new `command:` style:
-> ```bash
-> rm data/<name>/hermes/.mcp-init-done
-> docker compose up -d
-> ```
 
 ## Consuming this stack in another repo
 
