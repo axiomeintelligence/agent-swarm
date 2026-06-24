@@ -1,11 +1,11 @@
-- name: Allow Hermes gateway API on Tailscale interface
+- name: "Remove stale Hermes gateway API rule (8642 no longer used — gateway is outbound-only)"
   ansible.builtin.iptables:
     chain: INPUT
     in_interface: tailscale0
     protocol: tcp
     destination_port: "8642"
     jump: ACCEPT
-    comment: Hermes gateway API — Tailscale only
+    state: absent
   tags: agent-swarm
 
 - name: Allow Hermes dashboard on Tailscale interface
@@ -35,16 +35,6 @@
   tags: agent-swarm
 
 # --- Teardown (--tags teardown) ---
-
-- name: "[teardown] Remove Hermes gateway API iptables rule"
-  ansible.builtin.iptables:
-    chain: INPUT
-    in_interface: tailscale0
-    protocol: tcp
-    destination_port: "8642"
-    jump: ACCEPT
-    state: absent
-  tags: [teardown, never]
 
 - name: "[teardown] Remove Hermes dashboard iptables rule"
   ansible.builtin.iptables:

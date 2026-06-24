@@ -4,6 +4,45 @@ Breaking changes and migration steps, newest first.
 
 ---
 
+## 2026-06-24 — Dashboard auth env vars; drop unused `:8642` mapping
+
+### What changed
+
+- **`assistant/docker-compose.yml`** — drops the `${HOST_PORT:-8642}:8642` mapping (the Hermes gateway is an outbound connector for telegram/slack/email — nothing inside the container ever listens on 8642; the prior mapping was a no-op). Adds pass-through env vars `HERMES_DASHBOARD_BASIC_AUTH_USERNAME` and `HERMES_DASHBOARD_BASIC_AUTH_PASSWORD`. Replaces the now-ignored `HERMES_DASHBOARD_INSECURE` env.
+- **`assistant/.env.example`** — renames `HOST_PORT=8642` to `DASHBOARD_PORT=9119` (the only HTTP service this stack actually exposes). Adds `HERMES_DASHBOARD_BASIC_AUTH_USERNAME` and `HERMES_DASHBOARD_BASIC_AUTH_PASSWORD` (mandatory if you publish the dashboard outside loopback — without them Hermes' auth gate refuses to bind and the dashboard never opens its socket).
+- **`assistant/README.md`** — env-var table + architecture diagram updated to match.
+- **`infrastructure/ansible/tasks/agent-swarm.yml`** — the `iptables` rule that allowed inbound `8642` on the `tailscale0` interface is now `state: absent` (idempotently removes any prior rule). The matching teardown task is dropped.
+
+### Migration (per existing deployment)
+
+1. In the server-side `assistant/.env`:
+   ```
+   # remove
+   HOST_PORT=8642
+   HERMES_DASHBOARD_INSECURE=1
+   # add
+   DASHBOARD_PORT=9119
+   HERMES_DASHBOARD_BASIC_AUTH_USERNAME=admin
+   HERMES_DASHBOARD_BASIC_AUTH_PASSWORD=<openssl rand -hex 16>
+   ```
+2. Pull the new image and recreate hermes:
+   ```bash
+   cd /opt/<deployment>/assistant
+   docker compose pull
+   docker compose up -d hermes
+   ```
+3. Verify the dashboard binds — inside the container, `curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:9119/` should return `401` (auth required) instead of `000` (no listener).
+4. Re-run the iptables task to drop the stale `8642` rule:
+   ```bash
+   ansible-playbook -i inventory/<name> site.yml --tags agent-swarm
+   ```
+
+### Why
+
+Hermes recently tightened the dashboard auth gate: `HERMES_DASHBOARD_INSECURE` no longer disables the requirement for an auth provider on non-loopback binds. Without `BASIC_AUTH_USERNAME` + `BASIC_AUTH_PASSWORD` (or OAuth via `hermes dashboard register`), the dashboard process exits cleanly at boot and `:9119` never has a listener. Operators see a "connection refused" instead of an auth prompt. The `:8642` mapping was also confusing — the README labelled it "gateway API" but the gateway is an outbound connector and never serves HTTP.
+
+---
+
 ## 2026-06-23 — Native Hermes skill loading; `BRAIN_SYNC_INTERVAL` → `SKILL_SYNC_INTERVAL`
 
 ### What changed

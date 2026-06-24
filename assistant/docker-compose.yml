@@ -13,8 +13,9 @@ services:
       gdrive-mcp:
         condition: service_started
     ports:
-      - "${HOST_PORT:-8642}:8642"
-      - "${DASHBOARD_PORT:-9119}:9119"    # dashboard UI (requires HERMES_DASHBOARD=1)
+      # Hermes' gateway (telegram/slack/email connector) is outbound — it does NOT
+      # serve HTTP. The only HTTP service exposed by this stack is the dashboard.
+      - "${DASHBOARD_PORT:-9119}:9119"    # dashboard UI (requires HERMES_DASHBOARD=1 + basic-auth env vars)
     volumes:
       - ./data/${CONTAINER_NAME:-assistant}/hermes:/opt/data
       - ${MONO_REPO_PATH}/agent-swarm/config/assistant/.gbrain-data:/opt/gbrain-home
@@ -26,8 +27,12 @@ services:
       - assistant-net
     environment:
       # ── Dashboard ───────────────────────────────────────────────────────────
+      # Auth is mandatory for non-loopback binds (HERMES_DASHBOARD_INSECURE no
+      # longer disables this). Set BASIC_AUTH_USERNAME + _PASSWORD in .env, or
+      # configure OAuth with `hermes dashboard register`.
       - HERMES_DASHBOARD=${HERMES_DASHBOARD:-1}
-      - HERMES_DASHBOARD_INSECURE=${HERMES_DASHBOARD_INSECURE:-1}
+      - HERMES_DASHBOARD_BASIC_AUTH_USERNAME=${HERMES_DASHBOARD_BASIC_AUTH_USERNAME:-}
+      - HERMES_DASHBOARD_BASIC_AUTH_PASSWORD=${HERMES_DASHBOARD_BASIC_AUTH_PASSWORD:-}
       # ── AI provider ──────────────────────────────────────────────────────────
       - AI_PROVIDER=${AI_PROVIDER:-anthropic}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}

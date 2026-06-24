@@ -10,8 +10,10 @@ A self-hostable AI assistant composed of two Docker services: the Hermes AI gate
 │                                                             │
 │  ┌──────────────────────────────┐    ┌───────────────┐      │
 │  │           hermes             │    │  gdrive-mcp   │      │
-│  │          :8642 gateway       │    │  :3000 SSE    │      │
-│  │          :9119 dashboard     │    │               │      │
+│  │          :9119 dashboard     │    │  :3000 SSE    │      │
+│  │          (gateway = outbound │    │               │      │
+│  │           telegram/slack/...│    │               │      │
+│  │           — no HTTP server) │    │               │      │
 │  │                              │    │ GDrive MCP    │      │
 │  │  Hermes Agent (official)     │    │ supergateway  │      │
 │  │  + G-Brain HTTP MCP          │    │               │      │
@@ -67,10 +69,13 @@ docker compose up -d
 | `EMAIL_ADDRESS` | No | — | Gmail address for IMAP/SMTP |
 | `EMAIL_PASSWORD` | No | — | Gmail app password |
 | `CONTAINER_NAME` | No | `assistant` | Prefix for container names and network |
-| `HOST_PORT` | No | `8642` | Host port mapping for Hermes (container port 8642) |
+| `DASHBOARD_PORT` | No | `9119` | Host port mapping for the Hermes dashboard (the only HTTP service this stack exposes) |
+| `HERMES_DASHBOARD_BASIC_AUTH_USERNAME` | Yes** | — | Dashboard basic-auth username |
+| `HERMES_DASHBOARD_BASIC_AUTH_PASSWORD` | Yes** | — | Dashboard basic-auth password (plaintext; hashed at runtime). Without both username + password, the dashboard refuses to bind on non-loopback addresses. |
 | `TZ` | No | `UTC` | Container timezone |
 
 *Or `OPENAI_API_KEY` / `OPENROUTER_API_KEY` depending on `AI_PROVIDER`.
+**Required if you expose the dashboard outside loopback (i.e., in any compose deploy where `:9119` is published). OAuth via `hermes dashboard register` is the alternative.
 
 ## Volumes
 
