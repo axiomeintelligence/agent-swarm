@@ -9,6 +9,10 @@ Breaking changes and migration steps, newest first.
 ### What changed
 
 - **`assistant/docker-compose.yml`** — mono skills now bind-mounted read-only at `/opt/data/skills/mono` so Hermes auto-loads them natively (no gbrain hop). The previous `${MONO_REPO_PATH}/gbrain-skills` mount is removed.
+- **Mono subtree nested under `agent-swarm/config/assistant/`** — all three mounted host paths moved one level deeper so the same mono-repo can host other tools' config in sibling subdirs:
+  - `${MONO_REPO_PATH}/brain/`         → `${MONO_REPO_PATH}/agent-swarm/config/assistant/brain/`
+  - `${MONO_REPO_PATH}/skills/`        → `${MONO_REPO_PATH}/agent-swarm/config/assistant/skills/`
+  - `${MONO_REPO_PATH}/.gbrain-data/`  → `${MONO_REPO_PATH}/agent-swarm/config/assistant/.gbrain-data/`
 - **Env var rename:** `BRAIN_SYNC_INTERVAL` → `SKILL_SYNC_INTERVAL`. The script reads only the new name; if a server `.env` still uses the old name it will be silently ignored and the script default (300 s) will apply.
 - **Deleted scripts:** `assistant/hermes/scripts/06-start-skills-watch.sh` and `assistant/hermes/scripts/gbrain-skills-watch.sh`. Hermes auto-scans the skills tree — no inotify watcher needed.
 - **Dockerfile:** dropped `inotify-tools` (only the deleted watcher used it).
@@ -19,22 +23,30 @@ Breaking changes and migration steps, newest first.
    ```bash
    sed -i 's/^BRAIN_SYNC_INTERVAL=/SKILL_SYNC_INTERVAL=/' /opt/<deployment>/assistant/.env
    ```
-2. In the mono repo, create `skills/` at the top level (or rename the existing `gbrain-skills/` to `skills/`) and ensure at least one `<name>/SKILL.md` exists. Commit and push.
-3. On the host, ensure the bind-mount target exists in case the mono repo hasn't been pulled yet:
+2. Stop hermes briefly so the PGLite lock is released before the host-side move:
    ```bash
-   mkdir -p ${MONO_REPO_PATH}/skills
+   cd /opt/<deployment>/assistant
+   docker compose stop hermes
    ```
-4. Pull the new image and recreate the stack:
+3. Move the three mono subtrees into the new nested location. (If you previously had the top-level `gbrain-skills/`, rename it to `skills/` first.)
+   ```bash
+   mkdir -p ${MONO_REPO_PATH}/agent-swarm/config/assistant
+   mv ${MONO_REPO_PATH}/brain        ${MONO_REPO_PATH}/agent-swarm/config/assistant/brain
+   mv ${MONO_REPO_PATH}/skills       ${MONO_REPO_PATH}/agent-swarm/config/assistant/skills
+   mv ${MONO_REPO_PATH}/.gbrain-data ${MONO_REPO_PATH}/agent-swarm/config/assistant/.gbrain-data
+   ```
+4. In the mono repo itself, ensure `agent-swarm/config/assistant/skills/` contains at least one `<name>/SKILL.md` so the bind-mount is non-empty. Commit and push.
+5. Pull the new image and recreate the stack:
    ```bash
    cd /opt/<deployment>/assistant
    docker compose pull
    docker compose up -d
    ```
-5. Verify (inside the running container):
+6. Verify (inside the running container):
    ```bash
    docker exec -u hermes <container> hermes skills list | grep mono
    ```
-   Expected: one row per `mono/skills/<name>/SKILL.md`, status `enabled`.
+   Expected: one row per `agent-swarm/config/assistant/skills/<name>/SKILL.md`, status `enabled`.
 
 ### Why
 

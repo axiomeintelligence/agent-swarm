@@ -21,8 +21,8 @@ A self-hostable AI assistant composed of two Docker services: the Hermes AI gate
 │        │                                  │                 │
 │   /opt/data (hermes state)           (stateless)            │
 │   /opt/gbrain-home (gbrain state)                           │
-│   /opt/data/skills/mono (ro, from mono/skills)              │
-│   /brain-repo (from mono/brain)                             │
+│   /opt/data/skills/mono (ro) ←─ mono/agent-swarm/.../skills │
+│   /brain-repo               ←─ mono/agent-swarm/.../brain   │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -56,7 +56,7 @@ docker compose up -d
 | `AI_PROVIDER` | No | `anthropic` | Model provider: `anthropic` \| `openai` \| `openrouter` |
 | `OPENAI_API_KEY` | No | — | OpenAI key (required if `AI_PROVIDER=openai`) |
 | `OPENROUTER_API_KEY` | No | — | OpenRouter key (required if `AI_PROVIDER=openrouter`) |
-| `MONO_REPO_PATH` | No | — | Host path to a local clone of your mono-repo. `skills/` is bind-mounted read-only into Hermes; `brain/` is the periodic G-Brain import source; `.gbrain-data/` holds the PGLite database |
+| `MONO_REPO_PATH` | No | — | Host path to a local clone of your mono-repo. The stack reads from `<MONO_REPO_PATH>/agent-swarm/config/assistant/`: `skills/` (bind-mounted read-only into Hermes), `brain/` (periodic G-Brain import source), `.gbrain-data/` (PGLite database) |
 | `SKILL_SYNC_INTERVAL` | No | `300` | Seconds between mono-repo `git pull` ticks (refreshes Hermes skills + re-imports `brain/` into G-Brain) |
 | `GOOGLE_SERVICE_ACCOUNT_JSON` | No | — | Full JSON of a Google service account key with Drive API access |
 | `TELEGRAM_BOT_TOKEN` | No | — | Enable Telegram platform |
@@ -79,9 +79,9 @@ Data is persisted under `assistant/data/<CONTAINER_NAME>/`:
 | Path | Content |
 |------|---------|
 | `data/<name>/hermes/` | Hermes config, state DB, logs |
-| `<MONO_REPO_PATH>/brain/` | G-Brain knowledge source; periodically re-imported into PGLite |
-| `<MONO_REPO_PATH>/skills/` | Hermes skill packs; bind-mounted **read-only** at `/opt/data/skills/mono`. Hermes auto-scans new `SKILL.md` files within one `SKILL_SYNC_INTERVAL` tick. Authoring is via `git` in the mono repo — `hermes skills install --category mono` is not supported (mount is read-only by design). |
-| `<MONO_REPO_PATH>/.gbrain-data/` | G-Brain PGLite database; persistent state |
+| `<MONO_REPO_PATH>/agent-swarm/config/assistant/brain/` | G-Brain knowledge source; periodically re-imported into PGLite |
+| `<MONO_REPO_PATH>/agent-swarm/config/assistant/skills/` | Hermes skill packs; bind-mounted **read-only** at `/opt/data/skills/mono`. Hermes auto-scans new `SKILL.md` files within one `SKILL_SYNC_INTERVAL` tick. Authoring is via `git` in the mono repo — `hermes skills install --category mono` is not supported (mount is read-only by design). |
+| `<MONO_REPO_PATH>/agent-swarm/config/assistant/.gbrain-data/` | G-Brain PGLite database; persistent state |
 
 ## MCP server registration
 
