@@ -16,6 +16,14 @@ GBRAIN_HOME="${GBRAIN_HOME:-/opt/gbrain-home}"
 GBRAIN_PORT="${GBRAIN_PORT:-3131}"
 TOKEN_FILE="/tmp/gbrain-http-token"
 
+# The mono repo on the host is typically owned by a non-root uid (e.g. 1000),
+# while this script runs as root inside the container. Git refuses to operate
+# on repos with mismatched ownership unless the path is listed as safe.
+# Idempotent: only add if not already configured.
+if ! git config --global --get-all safe.directory 2>/dev/null | grep -qFx "${MONO_ROOT}"; then
+    git config --global --add safe.directory "${MONO_ROOT}"
+fi
+
 if ! git -C "${MONO_ROOT}" rev-parse HEAD >/dev/null 2>&1; then
     echo "[sync-brain] ${MONO_ROOT} is not a git repo -- skipping"
     exit 0
