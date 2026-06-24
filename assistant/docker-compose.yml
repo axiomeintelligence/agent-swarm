@@ -19,7 +19,9 @@ services:
       - ./data/${CONTAINER_NAME:-assistant}/hermes:/opt/data
       - ${MONO_REPO_PATH}/agent-swarm/config/assistant/.gbrain-data:/opt/gbrain-home
       - ${MONO_REPO_PATH}/agent-swarm/config/assistant/skills:/opt/data/skills/mono:ro
-      - ${MONO_REPO_PATH}/agent-swarm/config/assistant/brain:/brain-repo
+      # Whole mono repo (rw) — sync-brain needs the .git directory for `git pull`.
+      # Brain content is read from /mono-repo/agent-swarm/config/assistant/brain inside.
+      - ${MONO_REPO_PATH}:/mono-repo
     networks:
       - assistant-net
     environment:

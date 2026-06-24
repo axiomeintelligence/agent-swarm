@@ -79,7 +79,8 @@ Data is persisted under `assistant/data/<CONTAINER_NAME>/`:
 | Path | Content |
 |------|---------|
 | `data/<name>/hermes/` | Hermes config, state DB, logs |
-| `<MONO_REPO_PATH>/agent-swarm/config/assistant/brain/` | G-Brain knowledge source; periodically re-imported into PGLite |
+| `<MONO_REPO_PATH>/` | Whole mono repo; bind-mounted at `/mono-repo` (rw). `sync-brain.sh` runs `git pull` against this path every `SKILL_SYNC_INTERVAL` seconds. Read-write because git needs to update refs/objects — the container has no business writing application files here. |
+| `<MONO_REPO_PATH>/agent-swarm/config/assistant/brain/` | G-Brain knowledge source; read by `sync-brain.sh` (as `/mono-repo/agent-swarm/config/assistant/brain` inside the container) and imported into PGLite via the gbrain MCP `import_documents` tool whenever a new commit lands. |
 | `<MONO_REPO_PATH>/agent-swarm/config/assistant/skills/` | Hermes skill packs; bind-mounted **read-only** at `/opt/data/skills/mono`. Hermes auto-scans new `SKILL.md` files within one `SKILL_SYNC_INTERVAL` tick. Authoring is via `git` in the mono repo — `hermes skills install --category mono` is not supported (mount is read-only by design). |
 | `<MONO_REPO_PATH>/agent-swarm/config/assistant/.gbrain-data/` | G-Brain PGLite database; persistent state |
 

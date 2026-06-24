@@ -13,6 +13,7 @@ Breaking changes and migration steps, newest first.
   - `${MONO_REPO_PATH}/brain/`         → `${MONO_REPO_PATH}/agent-swarm/config/assistant/brain/`
   - `${MONO_REPO_PATH}/skills/`        → `${MONO_REPO_PATH}/agent-swarm/config/assistant/skills/`
   - `${MONO_REPO_PATH}/.gbrain-data/`  → `${MONO_REPO_PATH}/agent-swarm/config/assistant/.gbrain-data/`
+- **Whole mono-repo now bind-mounted at `/mono-repo` (rw)** — the previous `/brain-repo` subdir mount didn't expose `.git`, so `sync-brain.sh`'s `git pull` failed silently every cycle (`/brain-repo is not a git repo -- skipping`). `sync-brain.sh` now runs `git -C /mono-repo pull` and imports `/mono-repo/agent-swarm/config/assistant/brain` into G-Brain on each new commit. The dedicated `/brain-repo` mount is dropped.
 - **Env var rename:** `BRAIN_SYNC_INTERVAL` → `SKILL_SYNC_INTERVAL`. The script reads only the new name; if a server `.env` still uses the old name it will be silently ignored and the script default (300 s) will apply.
 - **Deleted scripts:** `assistant/hermes/scripts/06-start-skills-watch.sh` and `assistant/hermes/scripts/gbrain-skills-watch.sh`. Hermes auto-scans the skills tree — no inotify watcher needed.
 - **Dockerfile:** dropped `inotify-tools` (only the deleted watcher used it).
