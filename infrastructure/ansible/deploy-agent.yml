@@ -90,6 +90,9 @@
         services:
           - hermes
           - devbot-mcp
+          - assistant-registry
+          - assistant-a2a-bridge
+          - assistant-agent-corporate-board
         state: present
 
     - name: Ensure full stack is running
